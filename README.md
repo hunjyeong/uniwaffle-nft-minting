@@ -22,7 +22,7 @@ cd uniwaffle-nft-minting
 npm install
 ```
 
-## ⚙️ 환경 변수 설정
+## 환경 변수 설정
 
 `.env` 파일을 생성하고 다음 내용을 입력하세요:
 ```bash
