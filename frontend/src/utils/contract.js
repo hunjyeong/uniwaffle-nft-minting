@@ -4,13 +4,10 @@ import {
   TRANSFERABLE_ADDRESS,
   SOULBOUND_ABI,
   TRANSFERABLE_ABI
-} from '../config/contracts';
+} from '../config/contracts.js';
 
 /**
  * 스마트 컨트랙트 인스턴스 가져오기
- * @param {ethers.BrowserProvider} provider - Ethers provider
- * @param {string} contractType - 'soulbound' 또는 'transferable'
- * @returns {ethers.Contract} 컨트랙트 인스턴스
  */
 export const getContract = async (provider, contractType) => {
   const signer = await provider.getSigner();
@@ -26,56 +23,88 @@ export const getContract = async (provider, contractType) => {
 
 /**
  * NFT 민팅
- * @param {ethers.BrowserProvider} provider - Ethers provider
- * @param {string} contractType - 'soulbound' 또는 'transferable'
- * @param {string} recipientAddress - NFT를 받을 주소
- * @param {string} tokenURI - 메타데이터 URI
- * @returns {Promise<Object>} 민팅 결과 (txHash, tokenId)
  */
 export const mintNFT = async (provider, contractType, recipientAddress, tokenURI) => {
   try {
     const contract = await getContract(provider, contractType);
     
-    console.log('민팅 트랜잭션 전송 중...');
-    const tx = await contract.mint(recipientAddress, tokenURI);
+    console.log('민팅 시작:', {
+      contractType,
+      recipient: recipientAddress,
+      tokenURI
+    });
     
-    console.log('트랜잭션 대기 중...', tx.hash);
+    // mintWithURI 함수 사용 (mint 아님!)
+    const tx = await contract.mintWithURI(recipientAddress, tokenURI);
+    
+    console.log('트랜잭션 전송됨:', tx.hash);
+    console.log('트랜잭션 대기 중...');
+    
     const receipt = await tx.wait();
+    console.log('트랜잭션 완료:', receipt);
     
     // Transfer 이벤트에서 tokenId 추출
-    const transferEvent = receipt.logs.find(
-      log => log.topics[0] === ethers.id('Transfer(address,address,uint256)')
-    );
+    let tokenId = null;
     
-    const tokenId = transferEvent ? 
-      ethers.toBigInt(transferEvent.topics[3]).toString() : 
-      null;
+    // 이벤트 로그에서 tokenId 찾기
+    for (const log of receipt.logs) {
+      try {
+        const parsedLog = contract.interface.parseLog(log);
+        if (parsedLog && parsedLog.name === 'SoulboundMinted') {
+          tokenId = parsedLog.args.tokenId.toString();
+          break;
+        }
+        if (parsedLog && parsedLog.name === 'NFTMinted') {
+          tokenId = parsedLog.args.tokenId.toString();
+          break;
+        }
+      } catch (e) {
+        // 파싱 실패한 로그는 무시
+      }
+    }
+    
+    // tokenId를 못 찾았으면 topics에서 추출
+    if (!tokenId && receipt.logs.length > 0) {
+      try {
+        const transferLog = receipt.logs.find(log => log.topics.length >= 4);
+        if (transferLog) {
+          tokenId = ethers.toBigInt(transferLog.topics[3]).toString();
+        }
+      } catch (e) {
+        console.warn('tokenId 추출 실패:', e);
+      }
+    }
     
     return {
       success: true,
       txHash: receipt.hash,
-      tokenId,
+      tokenId: tokenId || 'Unknown',
       blockNumber: receipt.blockNumber
     };
   } catch (error) {
     console.error('민팅 실패:', error);
+    
+    // 에러 메시지 개선
+    if (error.code === 'ACTION_REJECTED') {
+      throw new Error('사용자가 트랜잭션을 거부했습니다.');
+    } else if (error.code === 'INSUFFICIENT_FUNDS') {
+      throw new Error('가스비가 부족합니다. Sepolia ETH를 받으세요.');
+    } else if (error.message.includes('Ownable: caller is not the owner')) {
+      throw new Error('민팅 권한이 없습니다. 컨트랙트 소유자만 민팅할 수 있습니다.');
+    }
+    
     throw error;
   }
 };
 
 /**
- * NFT 전송 (TransferableNFT만 가능)
- * @param {ethers.BrowserProvider} provider - Ethers provider
- * @param {string} fromAddress - 보내는 주소
- * @param {string} toAddress - 받는 주소
- * @param {string} tokenId - NFT Token ID
- * @returns {Promise<Object>} 전송 결과
+ * NFT 전송 (TransferableNFT만)
  */
 export const transferNFT = async (provider, fromAddress, toAddress, tokenId) => {
   try {
     const contract = await getContract(provider, 'transferable');
     
-    console.log('전송 트랜잭션 전송 중...');
+    console.log('전송 시작:', { from: fromAddress, to: toAddress, tokenId });
     const tx = await contract.transferFrom(fromAddress, toAddress, tokenId);
     
     console.log('트랜잭션 대기 중...', tx.hash);
@@ -94,10 +123,6 @@ export const transferNFT = async (provider, fromAddress, toAddress, tokenId) => 
 
 /**
  * NFT 소유자 확인
- * @param {ethers.BrowserProvider} provider - Ethers provider
- * @param {string} contractType - 'soulbound' 또는 'transferable'
- * @param {string} tokenId - NFT Token ID
- * @returns {Promise<string>} 소유자 주소
  */
 export const getTokenOwner = async (provider, contractType, tokenId) => {
   try {
@@ -111,10 +136,6 @@ export const getTokenOwner = async (provider, contractType, tokenId) => {
 
 /**
  * NFT 메타데이터 URI 가져오기
- * @param {ethers.BrowserProvider} provider - Ethers provider
- * @param {string} contractType - 'soulbound' 또는 'transferable'
- * @param {string} tokenId - NFT Token ID
- * @returns {Promise<string>} Token URI
  */
 export const getTokenURI = async (provider, contractType, tokenId) => {
   try {
@@ -128,10 +149,6 @@ export const getTokenURI = async (provider, contractType, tokenId) => {
 
 /**
  * 사용자가 소유한 NFT 목록 가져오기
- * @param {ethers.BrowserProvider} provider - Ethers provider
- * @param {string} contractType - 'soulbound' 또는 'transferable'
- * @param {string} ownerAddress - 소유자 주소
- * @returns {Promise<Array>} Token ID 배열
  */
 export const getTokensOfOwner = async (provider, contractType, ownerAddress) => {
   try {

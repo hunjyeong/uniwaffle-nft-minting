@@ -13,7 +13,7 @@ const __dirname = path.dirname(__filename);
 async function main() {
     console.log('🚀 Minting Transferable NFT...\n');
     
-    const contractAddress = process.env.TRANSFERABLE_NFT_ADDRESS;
+    const contractAddress = process.env.TRANSFERABLE_ADDRESS;
     // const recipientAddress = process.env.RECIPIENT_ADDRESS; // ← 수동 설정 대신 서명자 주소 사용
 
     // 서명자 주소 자동 가져오기
@@ -23,7 +23,7 @@ async function main() {
     console.log(`👤 Minting to Signer: ${recipientAddress}\n`);
     
     if (!contractAddress) {
-        throw new Error('❌ TRANSFERABLE_NFT_ADDRESS not found in .env');
+        throw new Error('❌ TRANSFERABLE_ADDRESS not found in .env');
     }
     
     // 이미지 업로드

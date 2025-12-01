@@ -27,7 +27,7 @@ async function main() {
     console.log("   Mint Price:", ethers.formatEther(await nft.mintPrice()), "ETH");
     
     console.log("\n💾 Save this address to .env:");
-    console.log(`   TRANSFERABLE_NFT_ADDRESS=${address}`);
+    console.log(`   TRANSFERABLE_ADDRESS=${address}`);
 }
 
 main()

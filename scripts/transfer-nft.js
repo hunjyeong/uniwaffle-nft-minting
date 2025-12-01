@@ -5,11 +5,11 @@ import { config } from 'dotenv';
 config();
 
 async function main() {
-    const contractAddress = process.env.TRANSFERABLE_NFT_ADDRESS;
+    const contractAddress = process.env.TRANSFERABLE_ADDRESS;
     const toAddress = "0x80d48039fc26588396Fc59e3101EF4580979468d"; // ← 받을 주소 (다른 주소로 변경)
     
     if (!contractAddress) {
-        console.error('❌ TRANSFERABLE_NFT_ADDRESS not found in .env');
+        console.error('❌ TRANSFERABLE_ADDRESS not found in .env');
         return;
     }
     

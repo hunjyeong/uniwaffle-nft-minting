@@ -5,7 +5,7 @@ import { config } from 'dotenv';
 config();
 
 async function main() {
-    const contractAddress = process.env.TRANSFERABLE_NFT_ADDRESS;
+    const contractAddress = process.env.TRANSFERABLE_ADDRESS;
     
     const TransferableNFT = await ethers.getContractFactory("TransferableNFT");
     const nft = TransferableNFT.attach(contractAddress);
