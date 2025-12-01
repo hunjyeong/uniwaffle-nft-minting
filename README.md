@@ -1,70 +1,55 @@
-# Getting Started with Create React App
+# NFT Minting
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+### Frontend
+- React 18
+- Ethers.js v6
+- Web3Modal
+- Pinata (IPFS)
 
-## Available Scripts
+### Smart Contract
+- Solidity 0.8.28
+- Hardhat
+- OpenZeppelin Contracts
+- Etherscan Verification
 
-In the project directory, you can run:
+## 설치 방법
+```bash
+# 저장소 클론
+git clone https://github.com/hunjyeong/uniwaffle-nft-minting.git
+cd uniwaffle-nft-minting
 
-### `npm start`
+# 의존성 설치
+npm install
+```
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## ⚙️ 환경 변수 설정
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+`.env` 파일을 생성하고 다음 내용을 입력하세요:
+```bash
+# Hardhat 배포용
+SEPOLIA_RPC_URL=https://ethereum-sepolia-rpc.publicnode.com
+MNEMONIC=your twelve word mnemonic phrase
+ETHERSCAN_API_KEY=your_etherscan_api_key
 
-### `npm test`
+# 배포된 스마트 컨트랙트 주소
+CONTRACT_ADDRESS=0x...
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+# Pinata API Keys (https://pinata.cloud)
+REACT_APP_PINATA_API_KEY=your_pinata_api_key
+REACT_APP_PINATA_SECRET_KEY=your_pinata_secret_key
+```
 
-### `npm run build`
+### 스마트 컨트랙트
+```bash
+# 컴파일
+npx hardhat compile
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+# Sepolia 테스트넷 배포
+npx hardhat run scripts/deploy.js --network sepolia
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+# 민팅
+npx hardhat run scripts/mint.js --network sepolia
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+# 전송
+npx hardhat run scripts/transfer-nft.js --network sepolia
+```
