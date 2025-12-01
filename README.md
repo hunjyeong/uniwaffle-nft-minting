@@ -32,7 +32,7 @@ MNEMONIC=your twelve word mnemonic phrase
 ETHERSCAN_API_KEY=your_etherscan_api_key
 
 # 배포된 스마트 컨트랙트 주소
-CONTRACT_ADDRESS=0x...
+SOULBOUND_ADDRESS=0x...
 
 # Pinata API Keys (https://pinata.cloud)
 REACT_APP_PINATA_API_KEY=your_pinata_api_key

@@ -1,63 +1,63 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-/node_modules
-/.pnp
-.pnp.js
-.yarn/install-state.gz
-
-# testing
-/coverage
-
-# production
-/build
-/dist
-
-# misc
-.DS_Store
+# ====================================
+# 환경 변수 (절대 커밋 금지!)
+# ====================================
 .env
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*.local
+frontend/.env
+frontend/.env.local
 
+# ====================================
+# 의존성
+# ====================================
+node_modules/
+frontend/node_modules/
+
+# ====================================
+# Hardhat
+# ====================================
+cache/
+artifacts/
+typechain-types/
+
+# ====================================
+# 빌드 파일
+# ====================================
+frontend/build/
+dist/
+
+# ====================================
+# 로그 파일
+# ====================================
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-pnpm-debug.log*
 
-# Hardhat files
-/cache
-/artifacts
-/deployments
+# ====================================
+# OS 파일
+# ====================================
+.DS_Store
+Thumbs.db
 
-# TypeChain files
-/typechain
-/typechain-types
-
-# solidity-coverage files
-/coverage
-/coverage.json
-
-# Hardhat Ignition default folder for deployments against a local node
-ignition/deployments/chain-31337
-
-# Deployment info (민감한 정보 포함 가능)
-deployment-info.json
-
+# ====================================
 # IDE
+# ====================================
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# Mac
-.DS_Store
-.AppleDouble
-.LSOverride
+# ====================================
+# 테스트 커버리지
+# ====================================
+coverage/
+.nyc_output/
 
-# Lock files (선택사항 - 팀 프로젝트면 제거)
-# package-lock.json
-# yarn.lock
-# pnpm-lock.yaml
+# ====================================
+# 기타
+# ====================================
+.coverage_artifacts
+.coverage_cache
+.coverage_contracts
