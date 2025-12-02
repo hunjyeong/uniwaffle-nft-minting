@@ -4,7 +4,7 @@ import { PINATA_JWT, PINATA_GATEWAY } from '../config/contracts.js';
 /**
  * 이미지를 Pinata에 업로드
  * @param {File} file - 업로드할 이미지 파일
- * @returns {Promise<string>} IPFS URL
+ * @returns {Promise<string>} IPFS URL (ipfs:// 프로토콜)
  */
 export const uploadImageToPinata = async (file) => {
   try {
@@ -23,7 +23,8 @@ export const uploadImageToPinata = async (file) => {
     );
 
     const ipfsHash = response.data.IpfsHash;
-    return `https://${PINATA_GATEWAY}/ipfs/${ipfsHash}`;
+    // ipfs:// 프로토콜 사용 (표준 방식)
+    return `ipfs://${ipfsHash}`;
   } catch (error) {
     console.error('이미지 업로드 실패:', error);
     throw new Error('이미지 업로드에 실패했습니다.');
@@ -32,8 +33,8 @@ export const uploadImageToPinata = async (file) => {
 
 /**
  * 메타데이터를 Pinata에 업로드
- * @param {Object} metadata - NFT 메타데이터
- * @returns {Promise<string>} 메타데이터 IPFS URL
+ * @param {Object} metadata - NFT 메타데이터c
+ * @returns {Promise<string>} 메타데이터 IPFS URL (ipfs:// 프로토콜)
  */
 export const uploadMetadataToPinata = async (metadata) => {
   try {
@@ -49,7 +50,8 @@ export const uploadMetadataToPinata = async (metadata) => {
     );
 
     const ipfsHash = response.data.IpfsHash;
-    return `https://${PINATA_GATEWAY}/ipfs/${ipfsHash}`;
+    // ipfs:// 프로토콜 사용 (표준 방식)
+    return `ipfs://${ipfsHash}`;
   } catch (error) {
     console.error('메타데이터 업로드 실패:', error);
     throw new Error('메타데이터 업로드에 실패했습니다.');
@@ -61,7 +63,7 @@ export const uploadMetadataToPinata = async (metadata) => {
  * @param {File} imageFile - 이미지 파일
  * @param {string} name - NFT 이름
  * @param {string} description - NFT 설명
- * @returns {Promise<string>} 메타데이터 URI
+ * @returns {Promise<string>} 메타데이터 URI (ipfs://)
  */
 export const uploadNFT = async (imageFile, name, description) => {
   try {
@@ -74,7 +76,7 @@ export const uploadNFT = async (imageFile, name, description) => {
     const metadata = {
       name,
       description,
-      image: imageUrl,
+      image: imageUrl, // ipfs://QmXXX 형태
       attributes: [
         {
           trait_type: "Created",
@@ -88,7 +90,7 @@ export const uploadNFT = async (imageFile, name, description) => {
     const metadataUrl = await uploadMetadataToPinata(metadata);
     console.log('메타데이터 업로드 완료:', metadataUrl);
 
-    return metadataUrl;
+    return metadataUrl; // ipfs://QmYYY 형태
   } catch (error) {
     console.error('NFT 업로드 실패:', error);
     throw error;

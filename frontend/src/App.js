@@ -10,8 +10,8 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <h1>NFT Minting DApp</h1>
-        <p className="subtitle">Soulbound & Transferable NFTs on Sepolia</p>
+        <h1>NFT Minting System</h1>
+        <p className="subtitle">NFTs on Sepolia</p>
         <WalletConnect />
       </header>
 
@@ -21,13 +21,13 @@ function App() {
             className={`tab ${activeTab === 'mint' ? 'active' : ''}`}
             onClick={() => setActiveTab('mint')}
           >
-            민팅하기
+            Minting
           </button>
           <button 
             className={`tab ${activeTab === 'gallery' ? 'active' : ''}`}
             onClick={() => setActiveTab('gallery')}
           >
-            내 NFT
+            My NFT
           </button>
         </div>
 

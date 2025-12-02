@@ -2,13 +2,13 @@ import { ethers } from 'ethers';
 import {
   SOULBOUND_ADDRESS,
   TRANSFERABLE_ADDRESS,
+  FRACTIONAL_ADDRESS,
   SOULBOUND_ABI,
-  TRANSFERABLE_ABI
+  TRANSFERABLE_ABI,
+  FRACTIONAL_ABI
 } from '../config/contracts.js';
 
-/**
- * 스마트 컨트랙트 인스턴스 가져오기
- */
+// 스마트 컨트랙트 인스턴스 가져오기
 export const getContract = async (provider, contractType) => {
   const signer = await provider.getSigner();
   
@@ -16,14 +16,14 @@ export const getContract = async (provider, contractType) => {
     return new ethers.Contract(SOULBOUND_ADDRESS, SOULBOUND_ABI, signer);
   } else if (contractType === 'transferable') {
     return new ethers.Contract(TRANSFERABLE_ADDRESS, TRANSFERABLE_ABI, signer);
+  } else if (contractType === 'fractional') {
+    return new ethers.Contract(FRACTIONAL_ADDRESS, FRACTIONAL_ABI, signer);
   }
   
   throw new Error('Invalid contract type');
 };
 
-/**
- * NFT 민팅
- */
+// NFT 민팅
 export const mintNFT = async (provider, contractType, recipientAddress, tokenURI) => {
   try {
     const contract = await getContract(provider, contractType);
@@ -34,7 +34,7 @@ export const mintNFT = async (provider, contractType, recipientAddress, tokenURI
       tokenURI
     });
     
-    // mintWithURI 함수 사용 (mint 아님!)
+    // mintWithURI 함수 사용
     const tx = await contract.mintWithURI(recipientAddress, tokenURI);
     
     console.log('트랜잭션 전송됨:', tx.hash);
@@ -55,6 +55,10 @@ export const mintNFT = async (provider, contractType, recipientAddress, tokenURI
           break;
         }
         if (parsedLog && parsedLog.name === 'NFTMinted') {
+          tokenId = parsedLog.args.tokenId.toString();
+          break;
+        }
+        if (parsedLog && parsedLog.name === 'FractionalMinted') {
           tokenId = parsedLog.args.tokenId.toString();
           break;
         }
@@ -97,11 +101,13 @@ export const mintNFT = async (provider, contractType, recipientAddress, tokenURI
   }
 };
 
-/**
- * NFT 전송 (TransferableNFT만)
- */
-export const transferNFT = async (provider, fromAddress, toAddress, tokenId) => {
+//  NFT 전송 (SBT 불가)
+export const transferNFT = async (provider, contractType, fromAddress, toAddress, tokenId) => {
   try {
+    if (contractType === 'soulbound') {
+      throw new Error('Soulbound Token은 전송할 수 없습니다.');
+    }
+
     const contract = await getContract(provider, 'transferable');
     
     console.log('전송 시작:', { from: fromAddress, to: toAddress, tokenId });
@@ -121,9 +127,7 @@ export const transferNFT = async (provider, fromAddress, toAddress, tokenId) => 
   }
 };
 
-/**
- * NFT 소유자 확인
- */
+// NFT 소유자 확인
 export const getTokenOwner = async (provider, contractType, tokenId) => {
   try {
     const contract = await getContract(provider, contractType);
@@ -134,9 +138,7 @@ export const getTokenOwner = async (provider, contractType, tokenId) => {
   }
 };
 
-/**
- * NFT 메타데이터 URI 가져오기
- */
+// NFT 메타데이터 URI 가져오기
 export const getTokenURI = async (provider, contractType, tokenId) => {
   try {
     const contract = await getContract(provider, contractType);
@@ -147,9 +149,7 @@ export const getTokenURI = async (provider, contractType, tokenId) => {
   }
 };
 
-/**
- * 사용자가 소유한 NFT 목록 가져오기
- */
+// 사용자가 소유한 NFT 목록 가져오기
 export const getTokensOfOwner = async (provider, contractType, ownerAddress) => {
   try {
     const contract = await getContract(provider, contractType);

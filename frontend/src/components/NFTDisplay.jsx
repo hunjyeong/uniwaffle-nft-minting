@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useWeb3 } from '../hooks/useWeb3';
 import { getContract } from '../utils/contract';
 import axios from 'axios';
@@ -13,7 +13,13 @@ const NFTDisplay = () => {
   // NFT 메타데이터 가져오기
   const fetchMetadata = async (tokenURI) => {
     try {
-      const response = await axios.get(tokenURI);
+      // ipfs:// URL을 HTTP 게이트웨이로 변환
+      let uri = tokenURI;
+      if (uri.startsWith('ipfs://')) {
+        uri = uri.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/');
+      }
+      
+      const response = await axios.get(uri);
       return response.data;
     } catch (err) {
       console.error('메타데이터 로드 실패:', err);
@@ -21,8 +27,37 @@ const NFTDisplay = () => {
     }
   };
 
+  // IPFS URL을 HTTP로 변환하는 헬퍼 함수
+  const convertIpfsUrl = (url) => {
+    if (!url) return '';
+    
+    // 이미 https://로 시작하는 경우
+    if (url.startsWith('https://')) {
+      // 중복된 게이트웨이 URL 수정
+      // https://gateway.../ipfs/https://gateway.../ipfs/Qm... 
+      // → https://gateway.../ipfs/Qm...
+      const duplicatePattern = /https:\/\/gateway\.pinata\.cloud\/ipfs\/https:\/\/gateway\.pinata\.cloud\/ipfs\//;
+      if (duplicatePattern.test(url)) {
+        return url.replace(duplicatePattern, 'https://gateway.pinata.cloud/ipfs/');
+      }
+      return url;
+    }
+    
+    // ipfs:// 프로토콜을 HTTP로 변환
+    if (url.startsWith('ipfs://')) {
+      return url.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/');
+    }
+    
+    // Qm으로 시작하는 해시만 있는 경우
+    if (url.startsWith('Qm')) {
+      return `https://gateway.pinata.cloud/ipfs/${url}`;
+    }
+    
+    return url;
+  };
+
   // 사용자의 NFT 목록 가져오기
-  const loadNFTs = async () => {
+  const loadNFTs = useCallback(async () => {
     if (!isConnected || !provider) return;
 
     setLoading(true);
@@ -38,7 +73,9 @@ const NFTDisplay = () => {
         
         for (let tokenId of soulboundTokens) {
           const tokenURI = await soulboundContract.tokenURI(tokenId);
+          console.log('Soulbound Token URI:', tokenURI);
           const metadata = await fetchMetadata(tokenURI);
+          console.log('Soulbound Metadata:', metadata);
           
           allNFTs.push({
             tokenId: tokenId.toString(),
@@ -58,7 +95,9 @@ const NFTDisplay = () => {
         
         for (let tokenId of transferableTokens) {
           const tokenURI = await transferableContract.tokenURI(tokenId);
+          console.log('Transferable Token URI:', tokenURI);
           const metadata = await fetchMetadata(tokenURI);
+          console.log('Transferable Metadata:', metadata);
           
           allNFTs.push({
             tokenId: tokenId.toString(),
@@ -71,6 +110,7 @@ const NFTDisplay = () => {
         console.error('Transferable NFT 조회 실패:', err);
       }
 
+      console.log('All NFTs loaded:', allNFTs);
       setNfts(allNFTs);
     } catch (err) {
       console.error('NFT 로드 실패:', err);
@@ -78,7 +118,7 @@ const NFTDisplay = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isConnected, provider, account]);
 
   // 계정 변경 시 NFT 다시 로드
   useEffect(() => {
@@ -87,7 +127,7 @@ const NFTDisplay = () => {
     } else {
       setNfts([]);
     }
-  }, [isConnected, account]);
+  }, [isConnected, account, loadNFTs]);
 
   if (!isConnected) {
     return (
@@ -100,7 +140,7 @@ const NFTDisplay = () => {
   return (
     <div className="nft-display">
       <div className="nft-header">
-        <h2>내 NFT</h2>
+        <h2>My NFT</h2>
         <button onClick={loadNFTs} className="refresh-button" disabled={loading}>
           {loading ? '로딩 중...' : '🔄 새로고침'}
         </button>
@@ -118,7 +158,15 @@ const NFTDisplay = () => {
             <div key={`${nft.type}-${nft.tokenId}`} className="nft-card">
               <div className="nft-image">
                 {nft.metadata?.image ? (
-                  <img src={nft.metadata.image} alt={nft.metadata.name} />
+                  <img 
+                    src={convertIpfsUrl(nft.metadata.image)} 
+                    alt={nft.metadata.name}
+                    onError={(e) => {
+                      console.error('Image load failed:', nft.metadata.image);
+                      e.target.style.display = 'none';
+                      e.target.parentElement.innerHTML = '<div class="no-image">이미지 로드 실패</div>';
+                    }}
+                  />
                 ) : (
                   <div className="no-image">이미지 없음</div>
                 )}

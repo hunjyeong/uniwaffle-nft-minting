@@ -147,7 +147,7 @@ const MintForm = () => {
       
       <form onSubmit={handleMint} className="mint-form">
         <div className="form-group">
-          <label>NFT 타입</label>
+          <label>NFT Type</label>
           <div className="radio-group">
             <label className="radio-label">
               <input
@@ -171,7 +171,7 @@ const MintForm = () => {
         </div>
 
         <div className="form-group">
-          <label htmlFor="name">NFT 이름</label>
+          <label htmlFor="name">NFT Name</label>
           <input
             id="name"
             type="text"

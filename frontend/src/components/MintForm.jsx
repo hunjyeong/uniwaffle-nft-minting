@@ -6,7 +6,7 @@ import { mintNFT } from '../utils/contract.js';
 const MintForm = () => {
   const { account, provider, isConnected, isCorrectNetwork } = useWeb3();
   
-  const [nftType, setNftType] = useState('soulbound');
+  const [nftType, setNftType] = useState('transferable');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [imageFile, setImageFile] = useState(null);
@@ -93,12 +93,21 @@ const MintForm = () => {
 
   return (
     <div className="mint-form-container">
-      <h2>NFT 민팅</h2>
+      <h2>NFT Minting</h2>
       
       <form onSubmit={handleMint} className="mint-form">
         <div className="form-group">
-          <label>NFT 타입</label>
+          <label>NFT Type</label>
           <div className="radio-group">
+            <label className="radio-label">
+              <input
+                type="radio"
+                value="transferable"
+                checked={nftType === 'transferable'}
+                onChange={(e) => setNftType(e.target.value)}
+              />
+              <span>Transferable NFT</span>
+            </label>
             <label className="radio-label">
               <input
                 type="radio"
@@ -111,17 +120,17 @@ const MintForm = () => {
             <label className="radio-label">
               <input
                 type="radio"
-                value="transferable"
-                checked={nftType === 'transferable'}
+                value="fractional"
+                checked={nftType === 'fractional'}
                 onChange={(e) => setNftType(e.target.value)}
               />
-              <span>Transferable NFT</span>
+              <span>Fractional NFT</span>
             </label>
           </div>
         </div>
 
         <div className="form-group">
-          <label htmlFor="name">NFT 이름</label>
+          <label htmlFor="name">NFT Name</label>
           <input
             id="name"
             type="text"
