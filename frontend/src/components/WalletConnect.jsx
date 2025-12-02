@@ -33,7 +33,7 @@ const WalletConnect = () => {
           onClick={connectWallet}
           disabled={isConnecting}
         >
-          {isConnecting ? '연결 중...' : '🦊 MetaMask 연결'}
+          {isConnecting ? '연결 중...' : 'Wallet 연결 (Trust Wallet / MetaMask)'}
         </button>
       ) : (
         <div className="connected-info">

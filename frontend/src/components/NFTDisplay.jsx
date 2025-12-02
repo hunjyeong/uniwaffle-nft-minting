@@ -48,7 +48,7 @@ const NFTDisplay = () => {
           });
         }
       } catch (err) {
-        console.error('Soulbound NFT 조회 실패:', err);
+        console.error('Soulbound Token 조회 실패:', err);
       }
 
       // Transferable NFT 조회
@@ -100,7 +100,7 @@ const NFTDisplay = () => {
   return (
     <div className="nft-display">
       <div className="nft-header">
-        <h2>🖼️ 내 NFT</h2>
+        <h2>내 NFT</h2>
         <button onClick={loadNFTs} className="refresh-button" disabled={loading}>
           {loading ? '로딩 중...' : '🔄 새로고침'}
         </button>

@@ -62,10 +62,10 @@ const MintForm = () => {
     setUploadProgress('');
 
     try {
-      setUploadProgress('📤 이미지를 IPFS에 업로드 중...');
+      setUploadProgress('이미지를 IPFS에 업로드 중...');
       const tokenURI = await uploadNFT(imageFile, name, description);
       
-      setUploadProgress('✅ 업로드 완료! 민팅 중...');
+      setUploadProgress('업로드 완료! 민팅 중...');
       const result = await mintNFT(provider, nftType, recipient, tokenURI);
       
       setMintResult({
@@ -93,7 +93,7 @@ const MintForm = () => {
 
   return (
     <div className="mint-form-container">
-      <h2>🎨 NFT 민팅</h2>
+      <h2>NFT 민팅</h2>
       
       <form onSubmit={handleMint} className="mint-form">
         <div className="form-group">
@@ -106,7 +106,7 @@ const MintForm = () => {
                 checked={nftType === 'soulbound'}
                 onChange={(e) => setNftType(e.target.value)}
               />
-              <span>🔒 Soulbound (전송 불가)</span>
+              <span>Soulbound Token (전송 불가)</span>
             </label>
             <label className="radio-label">
               <input
@@ -115,7 +115,7 @@ const MintForm = () => {
                 checked={nftType === 'transferable'}
                 onChange={(e) => setNftType(e.target.value)}
               />
-              <span>🔄 Transferable (전송 가능)</span>
+              <span>Transferable NFT</span>
             </label>
           </div>
         </div>
@@ -188,7 +188,7 @@ const MintForm = () => {
 
         {mintResult && (
           <div className="success-message">
-            <h3>✅ 민팅 성공!</h3>
+            <h3>민팅 성공!</h3>
             <p><strong>Token ID:</strong> {mintResult.tokenId}</p>
             <p><strong>받는 주소:</strong> {mintResult.recipient}</p>
             <p>
@@ -209,7 +209,7 @@ const MintForm = () => {
           className="mint-button"
           disabled={isButtonDisabled}
         >
-          {isMinting ? '민팅 중...' : '🎨 민팅하기'}
+          {isMinting ? '민팅 중...' : '민팅하기'}
         </button>
       </form>
     </div>

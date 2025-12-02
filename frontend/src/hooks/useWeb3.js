@@ -54,7 +54,7 @@ export const useWeb3 = () => {
         await switchToSepolia();
       }
 
-      console.log('✅ MetaMask 연결 성공:', accounts[0]);
+      console.log('MetaMask 연결 성공:', accounts[0]);
     } catch (err) {
       console.error('MetaMask 연결 실패:', err);
       setError(err.message);
@@ -87,7 +87,7 @@ export const useWeb3 = () => {
           await switchToSepolia();
         }
 
-        console.log('✅ Trust Wallet 연결 성공:', accounts[0]);
+        console.log('Trust Wallet 연결 성공:', accounts[0]);
       } 
       // 데스크톱 또는 Trust Wallet 미설치 시 WalletConnect 사용
       else {
@@ -152,7 +152,7 @@ export const useWeb3 = () => {
         disconnectWallet();
       });
 
-      console.log('✅ WalletConnect 연결 성공:', address);
+      console.log('WalletConnect 연결 성공:', address);
     } catch (err) {
       console.error('WalletConnect 연결 실패:', err);
       if (err.message.includes('User rejected')) {
