@@ -14,11 +14,9 @@
 
 ## 설치 방법
 ```bash
-# 저장소 클론
 git clone https://github.com/hunjyeong/uniwaffle-nft-minting.git
 cd uniwaffle-nft-minting
 
-# 의존성 설치
 npm install
 ```
 
@@ -48,7 +46,7 @@ npx hardhat compile
 npx hardhat run scripts/deploy.js --network sepolia
 npx hardhat run scripts/deploy-transferable.js --network sepolia
 
-# 3. 배포된 컨트랙트 주소를 frontend/.env에 추가
+# 배포된 컨트랙트 주소를 frontend/.env에 추가
 REACT_APP_SOULBOUND_ADDRESS=??
 REACT_APP_TRANSFERABLE_ADDRESS=??
 
