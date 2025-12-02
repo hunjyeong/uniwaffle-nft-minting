@@ -1,6 +1,6 @@
 import hre from "hardhat";
 const { ethers } = hre; 
-import { uploadFile, uploadMetadata, createNFTMetadata } from './upload-to-ipfs-pinata.js';
+import { uploadFile, uploadMetadata, createNFTMetadata } from './upload_to_ipfs_pinata.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { config } from 'dotenv';

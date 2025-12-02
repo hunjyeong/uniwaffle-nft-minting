@@ -19,14 +19,14 @@ async function main() {
     await nft.waitForDeployment();
     const address = await nft.getAddress();
     
-    console.log("✅ TransferableNFT deployed to:", address);
-    console.log("\n📋 Contract Details:");
+    console.log("TransferableNFT deployed to:", address);
+    console.log("\nContract Details:");
     console.log("   Name:", await nft.name());
     console.log("   Symbol:", await nft.symbol());
     console.log("   Max Supply:", await nft.maxSupply());
     console.log("   Mint Price:", ethers.formatEther(await nft.mintPrice()), "ETH");
     
-    console.log("\n💾 Save this address to .env:");
+    console.log("\nSave this address to .env:");
     console.log(`   TRANSFERABLE_ADDRESS=${address}`);
 }
 
