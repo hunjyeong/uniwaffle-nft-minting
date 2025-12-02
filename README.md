@@ -46,10 +46,13 @@ npx hardhat compile
 
 # Sepolia 테스트넷 배포
 npx hardhat run scripts/deploy.js --network sepolia
+npx hardhat run scripts/deploy-transferable.js --network sepolia
 
-# 민팅
-npx hardhat run scripts/mint.js --network sepolia
+# 3. 배포된 컨트랙트 주소를 frontend/.env에 추가
+REACT_APP_SOULBOUND_ADDRESS=??
+REACT_APP_TRANSFERABLE_ADDRESS=??
 
-# 전송
-npx hardhat run scripts/transfer-nft.js --network sepolia
+# 서버 재시작
+cd frontend
+npm start
 ```
