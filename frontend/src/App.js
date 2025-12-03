@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './App.css';
 import WalletConnect from './components/WalletConnect';
-import MintForm from './components/MintForm';
+import MintForm from './components/MintForm_debug';
 import NFTDisplay from './components/NFTDisplay';
 
 function App() {

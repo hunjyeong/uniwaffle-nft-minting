@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useWeb3 } from '../hooks/useWeb3.js';
+import { useWeb3 } from '../hooks/useWeb3_orig.js';
 import { uploadNFT } from '../utils/ipfs.js';
 import { mintEvmNFT } from '../utils/EVMcontract.js';
 import { CHAIN_TYPES } from '../config/chains.js';
@@ -21,6 +21,23 @@ const MintForm = () => {
 
   const isButtonDisabled = isMinting || !isConnected || !isCorrectNetwork;
 
+  // 🔍 디버깅: 상태 출력
+  console.log('🔍 MintForm Debug:', {
+    isConnected,
+    isCorrectNetwork,
+    currentChain: currentChain?.name,
+    chainType: currentChain?.type,
+    account,
+    provider: !!provider,
+    isMinting,
+    isButtonDisabled,
+    hasName: !!name,
+    hasDescription: !!description,
+    hasImage: !!imageFile,
+    CHAIN_TYPES_IMPORTED: typeof CHAIN_TYPES !== 'undefined',
+    mintEvmNFT_IMPORTED: typeof mintEvmNFT !== 'undefined'
+  });
+
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -40,6 +57,8 @@ const MintForm = () => {
 
   const handleMint = async (e) => {
     e.preventDefault();
+    
+    console.log('🚀 민팅 시작!');
     
     if (!isConnected) {
       setError('먼저 지갑을 연결해주세요.');
@@ -63,16 +82,23 @@ const MintForm = () => {
     setUploadProgress('');
 
     try {
+      console.log('📤 IPFS 업로드 시작...');
       setUploadProgress('이미지를 IPFS에 업로드 중...');
       const tokenURI = await uploadNFT(imageFile, name, description);
+      console.log('✅ IPFS 업로드 완료:', tokenURI);
       
       setUploadProgress('업로드 완료! 민팅 중...');
       
       let result;
+      console.log('🔗 체인 타입 확인:', currentChain?.type, 'vs', CHAIN_TYPES.EVM);
+      
+      // EVM 체인에서 민팅
       if (currentChain?.type === CHAIN_TYPES.EVM) {
+        console.log('⚡ EVM 민팅 시작...');
         result = await mintEvmNFT(provider, nftType, recipient, tokenURI);
+        console.log('✅ 민팅 완료:', result);
       } else {
-        throw new Error('지원하지 않는 블록체인입니다.');
+        throw new Error('지원하지 않는 블록체인입니다: ' + currentChain?.type);
       }
       
       setMintResult({
@@ -91,7 +117,7 @@ const MintForm = () => {
       setRecipientAddress('');
       
     } catch (err) {
-      console.error('민팅 실패:', err);
+      console.error('❌ 민팅 실패:', err);
       setError(err.message || '민팅에 실패했습니다.');
       setUploadProgress('');
     } finally {
@@ -99,26 +125,64 @@ const MintForm = () => {
     }
   };
 
+  const handleButtonClick = () => {
+    console.log('🖱️ 버튼 클릭됨!');
+    console.log('버튼 상태:', {
+      disabled: isButtonDisabled,
+      isMinting,
+      isConnected,
+      isCorrectNetwork
+    });
+  };
+
   return (
     <div className="mint-form-container">
+      {/* 디버그 패널 */}
+      <div style={{
+        padding: '15px',
+        background: isButtonDisabled ? '#ffe6e6' : '#e6ffe6',
+        border: `3px solid ${isButtonDisabled ? '#ff0000' : '#00ff00'}`,
+        marginBottom: '20px',
+        fontFamily: 'monospace',
+        fontSize: '13px',
+        borderRadius: '8px'
+      }}>
+        <h4 style={{margin: '0 0 10px 0', color: '#333'}}>🔍 디버그 정보</h4>
+        <div>지갑 연결: <strong style={{color: isConnected ? 'green' : 'red'}}>{isConnected ? '✅ YES' : '❌ NO'}</strong></div>
+        <div>올바른 네트워크: <strong style={{color: isCorrectNetwork ? 'green' : 'red'}}>{isCorrectNetwork ? '✅ YES' : '❌ NO'}</strong></div>
+        <div>현재 체인: <strong>{currentChain?.name || '없음'}</strong></div>
+        <div>체인 타입: <strong>{currentChain?.type || '없음'}</strong></div>
+        <div>계정: <strong>{account ? account.slice(0, 10) + '...' : '없음'}</strong></div>
+        <div>Provider: <strong>{provider ? '✅' : '❌'}</strong></div>
+        <div>민팅 중: <strong>{isMinting ? 'YES' : 'NO'}</strong></div>
+        <div>이름: <strong>{name || '(비어있음)'}</strong></div>
+        <div>설명: <strong>{description ? '입력됨' : '(비어있음)'}</strong></div>
+        <div>이미지: <strong>{imageFile ? imageFile.name : '(선택 안 됨)'}</strong></div>
+        <div>CHAIN_TYPES: <strong>{typeof CHAIN_TYPES !== 'undefined' ? '✅' : '❌'}</strong></div>
+        <div>mintEvmNFT: <strong>{typeof mintEvmNFT !== 'undefined' ? '✅' : '❌'}</strong></div>
+        <div style={{
+          marginTop: '15px', 
+          padding: '10px',
+          background: isButtonDisabled ? '#ff000020' : '#00ff0020',
+          borderRadius: '4px'
+        }}>
+          <strong style={{fontSize: '16px'}}>
+            버튼 상태: {isButtonDisabled ? '❌ 비활성화' : '✅ 활성화'}
+          </strong>
+          {isButtonDisabled && (
+            <div style={{marginTop: '5px', fontSize: '12px'}}>
+              이유: {!isConnected ? '지갑 미연결' : !isCorrectNetwork ? '네트워크 불일치' : '민팅 중'}
+            </div>
+          )}
+        </div>
+      </div>
+
       <h2>NFT Minting</h2>
       
       {currentChain && (
         <div className="chain-badge">
           <span className="chain-icon">{currentChain.icon}</span>
           <span>{currentChain.name}에서 민팅</span>
-        </div>
-      )}
-
-      {!isConnected && (
-        <div className="info-message">
-          💡 먼저 상단에서 지갑을 연결해주세요
-        </div>
-      )}
-
-      {isConnected && !isCorrectNetwork && (
-        <div className="warning-message">
-          ⚠️ 올바른 네트워크로 전환해주세요
         </div>
       )}
       
@@ -224,7 +288,7 @@ const MintForm = () => {
 
         {mintResult && (
           <div className="success-message">
-            <h3>민팅 성공! 🎉</h3>
+            <h3>민팅 성공!</h3>
             <p><strong>체인:</strong> {mintResult.chain}</p>
             {mintResult.tokenId && (
               <p><strong>Token ID:</strong> {mintResult.tokenId}</p>
@@ -247,6 +311,12 @@ const MintForm = () => {
           type="submit" 
           className="mint-button"
           disabled={isButtonDisabled}
+          onClick={handleButtonClick}
+          style={{
+            opacity: isButtonDisabled ? 0.5 : 1,
+            cursor: isButtonDisabled ? 'not-allowed' : 'pointer',
+            pointerEvents: 'auto'
+          }}
         >
           {isMinting ? '민팅 중...' : '민팅하기'}
         </button>
@@ -279,24 +349,6 @@ const MintForm = () => {
 
         .chain-icon {
           font-size: 20px;
-        }
-
-        .info-message {
-          padding: 12px 16px;
-          background: #e7f5ff;
-          color: #1864ab;
-          border-radius: 8px;
-          margin-bottom: 20px;
-          font-size: 14px;
-        }
-
-        .warning-message {
-          padding: 12px 16px;
-          background: #fff3bf;
-          color: #f59f00;
-          border-radius: 8px;
-          margin-bottom: 20px;
-          font-size: 14px;
         }
 
         .mint-form {
