@@ -105,7 +105,6 @@ const MintForm = () => {
       
       {currentChain && (
         <div className="chain-badge">
-          <span className="chain-icon">{currentChain.icon}</span>
           <span>{currentChain.name}에서 민팅</span>
         </div>
       )}
@@ -267,7 +266,6 @@ const MintForm = () => {
         .chain-badge {
           display: inline-flex;
           align-items: center;
-          gap: 8px;
           padding: 8px 16px;
           background: #e7f5ff;
           border: 2px solid #74c0fc;

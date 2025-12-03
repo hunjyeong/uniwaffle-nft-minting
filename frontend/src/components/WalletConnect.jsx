@@ -60,18 +60,8 @@ const WalletConnect = () => {
             className="chain-selector-button"
             onClick={() => setShowChainSelector(!showChainSelector)}
           >
-            {currentChain ? (
-              <>
-                {renderChainIcon(currentChain.icon)}
-                <span>{currentChain.shortName}</span>
-                <span className="dropdown-arrow">▼</span>
-              </>
-            ) : (
-              <>
-                <span>블록체인 선택</span>
-                <span className="dropdown-arrow">▼</span>
-              </>
-            )}
+            <span>{currentChain ? currentChain.shortName : '블록체인 선택'}</span>
+            <span className="dropdown-arrow">▼</span>
           </button>
 
           {showChainSelector && (
@@ -118,7 +108,6 @@ const WalletConnect = () => {
               className="chain-display"
               onClick={() => setShowChainSelector(!showChainSelector)}
             >
-              {renderChainIcon(currentChain?.icon)}
               <span className="chain-name">{currentChain?.shortName}</span>
               <span className="dropdown-arrow">▼</span>
             </button>
