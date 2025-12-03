@@ -47,8 +47,8 @@ npx hardhat run scripts/deploy.js --network sepolia
 npx hardhat run scripts/deploy-native.js --network sepolia
 
 # 배포된 컨트랙트 주소를 frontend/.env에 추가
-REACT_APP_SOULBOUND_ADDRESS=??
-REACT_APP_NATIVENFT_ADDRESS=??
+REACT_APP_SEPOLIA_NATIVE_ADDRESS=??
+REACT_APP_SEPOLIA_SOULBOUND_ADDRESS=??
 
 # 서버 재시작
 cd frontend

@@ -5,11 +5,11 @@ import { config } from 'dotenv';
 config();
 
 async function main() {
-    const contractAddress = process.env.NATIVENFT_ADDRESS;
+    const contractAddress = process.env.REACT_APP_SEPOLIA_NATIVE_ADDRESS;
     const toAddress = "0x80d48039fc26588396Fc59e3101EF4580979468d"; // ← 받을 주소 (다른 주소로 변경)
     
     if (!contractAddress) {
-        console.error('❌ NATIVENFT_ADDRESS not found in .env');
+        console.error('❌ REACT_APP_SEPOLIA_NATIVE_ADDRESS not found in .env');
         return;
     }
     
@@ -27,11 +27,11 @@ async function main() {
         console.log(`   Your address: ${fromAddress}`);
         
         // RECIPIENT_ADDRESS로 민팅했는지 확인
-        const recipientAddress = process.env.RECIPIENT_ADDRESS;
+        const recipientAddress = process.env.REACT_APP_RECIPIENT_ADDRESS;
         if (recipientAddress && recipientAddress !== fromAddress) {
             const recipientTokens = await nft.tokensOfOwner(recipientAddress);
-            console.log(`\n💡 Tokens minted to RECIPIENT_ADDRESS: ${recipientTokens.length}`);
-            console.log(`   RECIPIENT_ADDRESS: ${recipientAddress}`);
+            console.log(`\n💡 Tokens minted to REACT_APP_RECIPIENT_ADDRESS: ${recipientTokens.length}`);
+            console.log(`   REACT_APP_RECIPIENT_ADDRESS: ${recipientAddress}`);
             console.log(`   Signer address: ${fromAddress}`);
             console.log('\n   These are different addresses!');
             console.log('   Update MNEMONIC in .env to match recipient address,');

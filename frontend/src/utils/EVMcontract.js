@@ -10,15 +10,15 @@ import {
 const CONTRACT_ADDRESSES = {
   // Ethereum Sepolia
   '0xaa36a7': {
-    native: process.env.REACT_APP_NATIVENFT_ADDRESS || '',
-    soulbound: process.env.REACT_APP_SOULBOUND_ADDRESS || '',
-    fractional: process.env.REACT_APP_FRACTIONAL_ADDRESS || ''
+    native: process.env.REACT_APP_SEPOLIA_NATIVE_ADDRESS || '',
+    soulbound: process.env.REACT_APP_SEPOLIA_SOULBOUND_ADDRESS || '',
+    fractional: process.env.REACT_APP_SEPOLIA_FRACTIONAL_ADDRESS || ''
   },
   // Ethereum Mainnet
   '0x1': {
-    native: '',
-    soulbound: '',
-    fractional: ''
+    native: process.env.REACT_APP_MAINNET_NATIVE_ADDRESS || '',
+    soulbound: process.env.REACT_APP_MAINNET_SOULBOUND_ADDRESS || '',
+    fractional: process.env.REACT_APP_MAINNET_FRACTIONAL_ADDRESS || ''
   },
   // Polygon
   '0x89': {

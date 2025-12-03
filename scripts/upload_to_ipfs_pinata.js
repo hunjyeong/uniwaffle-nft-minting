@@ -7,7 +7,7 @@ import { config } from 'dotenv';
 config();
 
 // Pinata 클라이언트 초기화
-const pinata = new pinataSDK({ pinataJWTKey: process.env.PINATA_JWT });
+const pinata = new pinataSDK({ pinataJWTKey: process.env.REACT_APP_PINATA_JWT });
 
 export async function uploadFile(filePath) {
     console.log(`Uploading ${filePath} to IPFS...`);
@@ -26,7 +26,7 @@ export async function uploadFile(filePath) {
         };
         
         const result = await pinata.pinFileToIPFS(readableStream, options);
-        const fileUrl = `https://${process.env.PINATA_GATEWAY || 'gateway.pinata.cloud'}/ipfs/${result.IpfsHash}`;
+        const fileUrl = `https://${process.env.REACT_APP_PINATA_GATEWAY || 'gateway.pinata.cloud'}/ipfs/${result.IpfsHash}`;
         
         console.log(`File uploaded: ${fileUrl}`);
         return {
@@ -44,7 +44,7 @@ export async function uploadMetadata(metadata) {
     
     try {
         const result = await pinata.pinJSONToIPFS(metadata);
-        const metadataUrl = `https://${process.env.PINATA_GATEWAY || 'gateway.pinata.cloud'}/ipfs/${result.IpfsHash}`;
+        const metadataUrl = `https://${process.env.REACT_APP_PINATA_GATEWAY || 'gateway.pinata.cloud'}/ipfs/${result.IpfsHash}`;
         
         console.log(`Metadata uploaded: ${metadataUrl}`);
         return {

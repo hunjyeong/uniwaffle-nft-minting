@@ -13,8 +13,8 @@ const __dirname = path.dirname(__filename);
 async function main() {
     console.log('🚀 Minting Native NFT...\n');
     
-    const contractAddress = process.env.NATIVENFT_ADDRESS;
-    // const recipientAddress = process.env.RECIPIENT_ADDRESS; // ← 수동 설정 대신 서명자 주소 사용
+    const contractAddress = process.env.REACT_APP_SEPOLIA_NATIVE_ADDRESS;
+    // const recipientAddress = process.env.REACT_APP_RECIPIENT_ADDRESS; // ← 수동 설정 대신 서명자 주소 사용
 
     // 서명자 주소 자동 가져오기
     const [signer] = await ethers.getSigners();

@@ -17,14 +17,14 @@ async function main() {
     // ========================================
     // 1️⃣ 설정 확인
     // ========================================
-    const contractAddress = process.env.SOULBOUND_ADDRESS;
-    const recipientAddress = process.env.RECIPIENT_ADDRESS;
+    const contractAddress = process.env.REACT_APP_SEPOLIA_SOULBOUND_ADDRESS;
+    const recipientAddress = process.env.REACT_APP_RECIPIENT_ADDRESS;
     
     if (!contractAddress) {
-        throw new Error('❌ SOULBOUND_ADDRESS not found in .env');
+        throw new Error('❌ REACT_APP_SEPOLIA_SOULBOUND_ADDRESS not found in .env');
     }
     if (!recipientAddress) {
-        throw new Error('❌ RECIPIENT_ADDRESS not found in .env');
+        throw new Error('❌ REACT_APP_RECIPIENT_ADDRESS not found in .env');
     }
     
     console.log('📋 Configuration:');

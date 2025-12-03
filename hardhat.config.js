@@ -21,12 +21,12 @@ export default {
       url: "http://127.0.0.1:8545"
     },
     sepolia: {
-      url: process.env.SEPOLIA_RPC_URL || "https://rpc.ankr.com/eth_sepolia",
-      accounts: process.env.PRIVATE_KEY 
-        ? [process.env.PRIVATE_KEY]
-        : process.env.MNEMONIC
+      url: process.env.REACT_APP_SEPOLIA_RPC_URL || "https://rpc.ankr.com/eth_sepolia",
+      accounts: process.env.REACT_APP_PRIVATE_KEY 
+        ? [process.env.REACT_APP_PRIVATE_KEY]
+        : process.env.REACT_APP_MNEMONIC
         ? {
-            mnemonic: process.env.MNEMONIC,
+            mnemonic: process.env.REACT_APP_MNEMONIC,
             path: "m/44'/60'/0'/0",
             initialIndex: 0,
             count: 1
@@ -34,12 +34,12 @@ export default {
         : []
     },
     mainnet: {
-      url: process.env.MAINNET_RPC_URL || "",
-      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : []
+      url: process.env.REACT_APP_MAINNET_RPC_URL || "",
+      accounts: process.env.REACT_APP_PRIVATE_KEY ? [process.env.REACT_APP_PRIVATE_KEY] : []
     }
   },
   etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY || ""
+    apiKey: process.env.REACT_APP_ETHERSCAN_API_KEY || ""
   },
   paths: {
     sources: "./contracts",

@@ -1,14 +1,7 @@
-export const SOULBOUND_ADDRESS = process.env.REACT_APP_SOULBOUND_ADDRESS;
-export const NATIVENFT_ADDRESS = process.env.REACT_APP_NATIVENFT_ADDRESS;
-export const FRACTIONAL_ADDRESS = process.env.REACT_APP_FRACTIONAL_ADDRESS;
-
-// Hardhat compile 후 생성된 ABI 가져오기
-// import SoulboundABI from '../../../artifacts/contracts/SoulboundToken.sol/SoulboundToken.json';
-// export const SOULBOUND_ABI = SoulboundABI.abi;
-
 // 네트워크 설정
 export const SEPOLIA_CHAIN_ID = "0xaa36a7"; // 11155111 in hex
 export const SEPOLIA_RPC_URL = process.env.REACT_APP_SEPOLIA_RPC_URL;
+export const MAINNET_RPC_URL = process.env.REACT_APP_MAINNET_RPC_URL;
 
 // Pinata 설정
 export const PINATA_JWT = process.env.REACT_APP_PINATA_JWT;
