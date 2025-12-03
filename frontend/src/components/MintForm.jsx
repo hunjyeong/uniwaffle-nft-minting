@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useWeb3 } from '../hooks/useWeb3.js';
 import { uploadNFT } from '../utils/ipfs.js';
 import { mintEvmNFT } from '../utils/EVMcontract.js';
 import { CHAIN_TYPES } from '../config/chains.js';
+import './MintForm.css';
 
 const MintForm = () => {
   const { account, provider, isConnected, isCorrectNetwork, currentChain } = useWeb3();
@@ -20,6 +21,13 @@ const MintForm = () => {
   const [error, setError] = useState(null);
 
   const isButtonDisabled = isMinting || !isConnected || !isCorrectNetwork;
+
+  // 체인 변경 시 상태 초기화
+  useEffect(() => {
+    console.log('🔄 체인 변경 감지:', currentChain?.name);
+    setMintResult(null);
+    setError(null);
+  }, [currentChain?.id]);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -104,14 +112,8 @@ const MintForm = () => {
       <h2>NFT Minting</h2>
       
       {currentChain && (
-        <div className="chain-badge">
+        <div className="chain-badge" key={currentChain.id}>
           <span>{currentChain.name}에서 민팅</span>
-        </div>
-      )}
-
-      {!isConnected && (
-        <div className="info-message">
-          💡 먼저 상단에서 지갑을 연결해주세요
         </div>
       )}
 
@@ -141,7 +143,7 @@ const MintForm = () => {
                 checked={nftType === 'soulbound'}
                 onChange={(e) => setNftType(e.target.value)}
               />
-              <span>Soulbound Token (전송 불가)</span>
+              <span>Soulbound Token</span>
             </label>
             <label className="radio-label">
               <input
@@ -250,201 +252,6 @@ const MintForm = () => {
           {isMinting ? '민팅 중...' : '민팅하기'}
         </button>
       </form>
-
-      <style jsx>{`
-        .mint-form-container {
-          max-width: 600px;
-          margin: 0 auto;
-          padding: 24px;
-        }
-
-        h2 {
-          margin-bottom: 20px;
-          color: #212529;
-        }
-
-        .chain-badge {
-          display: inline-flex;
-          align-items: center;
-          padding: 8px 16px;
-          background: #e7f5ff;
-          border: 2px solid #74c0fc;
-          border-radius: 8px;
-          margin-bottom: 20px;
-          font-weight: 600;
-          color: #1864ab;
-        }
-
-        .chain-icon {
-          font-size: 20px;
-        }
-
-        .info-message {
-          padding: 12px 16px;
-          background: #e7f5ff;
-          color: #1864ab;
-          border-radius: 8px;
-          margin-bottom: 20px;
-          font-size: 14px;
-        }
-
-        .warning-message {
-          padding: 12px 16px;
-          background: #fff3bf;
-          color: #f59f00;
-          border-radius: 8px;
-          margin-bottom: 20px;
-          font-size: 14px;
-        }
-
-        .mint-form {
-          background: white;
-          padding: 24px;
-          border-radius: 12px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .form-group {
-          margin-bottom: 20px;
-        }
-
-        label {
-          display: block;
-          margin-bottom: 8px;
-          font-weight: 600;
-          color: #495057;
-        }
-
-        .hint {
-          display: block;
-          font-size: 12px;
-          font-weight: 400;
-          color: #868e96;
-          margin-top: 4px;
-        }
-
-        input[type="text"],
-        textarea {
-          width: 100%;
-          padding: 12px;
-          border: 2px solid #e9ecef;
-          border-radius: 8px;
-          font-size: 14px;
-          transition: border-color 0.2s;
-          box-sizing: border-box;
-        }
-
-        input[type="text"]:focus,
-        textarea:focus {
-          outline: none;
-          border-color: #667eea;
-        }
-
-        input[type="file"] {
-          width: 100%;
-          padding: 8px;
-        }
-
-        .radio-group {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .radio-label {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 12px;
-          border: 2px solid #e9ecef;
-          border-radius: 8px;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .radio-label:hover {
-          background: #f8f9fa;
-          border-color: #667eea;
-        }
-
-        .radio-label input[type="radio"] {
-          cursor: pointer;
-        }
-
-        .image-preview {
-          margin-top: 12px;
-          text-align: center;
-        }
-
-        .image-preview img {
-          max-width: 100%;
-          max-height: 300px;
-          border-radius: 8px;
-          border: 2px solid #e9ecef;
-        }
-
-        .progress-message {
-          padding: 12px;
-          background: #e7f5ff;
-          border-radius: 8px;
-          color: #1864ab;
-          font-weight: 600;
-          text-align: center;
-          margin-bottom: 16px;
-        }
-
-        .error-message {
-          padding: 12px;
-          background: #ffe0e0;
-          color: #c92a2a;
-          border-radius: 8px;
-          margin-bottom: 16px;
-        }
-
-        .success-message {
-          padding: 16px;
-          background: #d3f9d8;
-          border-radius: 8px;
-          margin-bottom: 16px;
-        }
-
-        .success-message h3 {
-          margin: 0 0 12px 0;
-          color: #2b8a3e;
-        }
-
-        .success-message p {
-          margin: 8px 0;
-          color: #2b8a3e;
-        }
-
-        .success-message a {
-          color: #1864ab;
-          text-decoration: underline;
-        }
-
-        .mint-button {
-          width: 100%;
-          padding: 14px;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
-          border: none;
-          border-radius: 8px;
-          font-size: 16px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: transform 0.2s;
-        }
-
-        .mint-button:hover:not(:disabled) {
-          transform: translateY(-2px);
-        }
-
-        .mint-button:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-      `}</style>
     </div>
   );
 };

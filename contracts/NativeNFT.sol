@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
-contract TransferableNFT is ERC721URIStorage, ERC721Enumerable, Ownable {
+contract NativeNFT is ERC721URIStorage, ERC721Enumerable, Ownable {
     using Strings for uint256;
 
     uint256 private _tokenIdCounter;

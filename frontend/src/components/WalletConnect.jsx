@@ -94,11 +94,11 @@ const WalletConnect = () => {
             onClick={() => connectWallet(currentChain)}
             disabled={isConnecting || !currentChain}
           >
-            {isConnecting ? '연결 중...' : 'MetaMask/Trust Wallet 연결'}
+            {isConnecting ? '연결 중...' : 'Trust Wallet 연결'}
           </button>
 
           <div className="wallet-hint">
-            <p>💡 MetaMask 또는 Trust Wallet을 사용하세요</p>
+            <p>Trust Wallet을 사용하세요</p>
           </div>
         </div>
       ) : (

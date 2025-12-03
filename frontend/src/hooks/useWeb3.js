@@ -1,4 +1,3 @@
-// frontend/src/hooks/useWeb3.js
 import { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import { SUPPORTED_CHAINS, CHAIN_TYPES } from '../config/chains';
@@ -10,11 +9,12 @@ export const useWeb3 = () => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState(null);
   const [walletType, setWalletType] = useState(null);
-  const [currentChain, setCurrentChain] = useState(SUPPORTED_CHAINS.ETHEREUM_SEPOLIA);
+  const [currentChain, setCurrentChain] = useState(null); // 초기값을 null로 변경
 
   // Trust Wallet 설치 확인
   const isTrustWalletInstalled = () => {
-    return typeof window.ethereum !== 'undefined' && window.ethereum.isTrust;
+    return typeof window.ethereum !== 'undefined' && 
+           (window.ethereum.isTrust || window.ethereum.isTrustWallet);
   };
 
   // 일반 지갑 제공자 확인
@@ -22,8 +22,93 @@ export const useWeb3 = () => {
     return typeof window.ethereum !== 'undefined';
   };
 
+  // 체인 전환 (멀티체인 지원)
+  const switchChain = async (chain) => {
+    if (!window.ethereum) {
+      setError('지갑이 설치되어 있지 않습니다.');
+      return false;
+    }
+
+    try {
+      // EVM 체인만 지원
+      if (chain.type !== CHAIN_TYPES.EVM) {
+        throw new Error('현재 EVM 체인만 지원합니다.');
+      }
+
+      setError(null);
+
+      // 1단계: 체인 전환 시도
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: chain.chainId }]
+        });
+        
+        setCurrentChain(chain);
+        setChainId(chain.chainId);
+        console.log('체인 전환 성공:', chain.name);
+        return true;
+        
+      } catch (switchError) {
+        // 에러 코드 4902: 체인이 지갑에 없음
+        if (switchError.code === 4902) {
+          
+          // Mainnet은 추가할 수 없음 - 이미 존재해야 함
+          if (chain.chainId === '0x1') {
+            setError(
+              'Ethereum Mainnet을 찾을 수 없습니다. ' +
+              'Trust Wallet에서 Ethereum Mainnet을 활성화해주세요.'
+            );
+            throw new Error('Mainnet을 찾을 수 없습니다.');
+          }
+          
+          // 2단계: Testnet/L2는 체인 추가
+          try {
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [{
+                chainId: chain.chainId,
+                chainName: chain.name,
+                nativeCurrency: chain.nativeCurrency,
+                rpcUrls: [chain.rpcUrl],
+                blockExplorerUrls: chain.explorer ? [chain.explorer] : []
+              }]
+            });
+            
+            setCurrentChain(chain);
+            setChainId(chain.chainId);
+            console.log('체인 추가 및 전환 성공:', chain.name);
+            return true;
+            
+          } catch (addError) {
+            console.error('체인 추가 실패:', addError);
+            
+            if (addError.code === 4001) {
+              setError('사용자가 네트워크 추가를 거부했습니다.');
+            } else {
+              setError(`${chain.name} 추가에 실패했습니다.`);
+            }
+            
+            throw addError;
+          }
+          
+        } else if (switchError.code === 4001) {
+          setError('사용자가 네트워크 전환을 거부했습니다.');
+          throw switchError;
+        } else {
+          setError('네트워크 전환에 실패했습니다.');
+          throw switchError;
+        }
+      }
+      
+    } catch (err) {
+      console.error('체인 전환 실패:', err);
+      return false;
+    }
+  };
+
   // Trust Wallet 연결 (멀티체인 지원)
-  const connectTrustWallet = async (chain = currentChain) => {
+  const connectTrustWallet = async (chain = currentChain || SUPPORTED_CHAINS.ETHEREUM_SEPOLIA) => {
     setIsConnecting(true);
     setError(null);
 
@@ -41,33 +126,75 @@ export const useWeb3 = () => {
 
         const provider = new ethers.BrowserProvider(window.ethereum);
         const network = await provider.getNetwork();
+        const networkChainId = '0x' + network.chainId.toString(16);
         
+        console.log('지갑 연결됨:', {
+          account: accounts[0],
+          currentNetwork: networkChainId,
+          requestedNetwork: chain.chainId
+        });
+
         setAccount(accounts[0]);
         setProvider(provider);
-        setChainId('0x' + network.chainId.toString(16));
-        setCurrentChain(chain);
+        setChainId(networkChainId);
         setWalletType(isTrustWalletInstalled() ? 'trustwallet' : 'metamask');
 
-        // 선택한 체인과 다르면 전환
-        if ('0x' + network.chainId.toString(16) !== chain.chainId) {
-          await switchChain(chain);
+        // 선택한 체인과 다르면 전환 시도
+        if (networkChainId !== chain.chainId) {
+          console.log('🔄 네트워크 전환 필요:', {
+            from: networkChainId,
+            to: chain.chainId
+          });
+          
+          const switched = await switchChain(chain);
+          
+          if (switched) {
+            // 전환 성공 - switchChain에서 이미 setCurrentChain 호출됨
+            console.log('✅ 네트워크 전환 성공');
+          } else {
+            // 전환 실패 - 실제 연결된 네트워크로 설정
+            console.warn('⚠️ 네트워크 전환 실패, 현재 네트워크 유지');
+            const currentNetworkChain = Object.values(SUPPORTED_CHAINS).find(
+              c => c.chainId === networkChainId
+            );
+            
+            if (currentNetworkChain) {
+              setCurrentChain(currentNetworkChain);
+              setError(
+                `${chain.name}(으)로 전환하지 못했습니다. ` +
+                `현재 ${currentNetworkChain.name}에 연결되어 있습니다.`
+              );
+            } else {
+              // 지원하지 않는 네트워크
+              setError('지원하지 않는 네트워크입니다. 다른 네트워크를 선택해주세요.');
+            }
+          }
+        } else {
+          // 이미 올바른 네트워크에 연결됨
+          console.log('✅ 이미 올바른 네트워크에 연결됨');
+          setCurrentChain(chain);
         }
 
-        console.log('지갑 연결 성공:', accounts[0]);
+        console.log('지갑 연결 완료:', accounts[0]);
       } else {
         // WalletConnect로 QR 코드 연결
         await connectWalletConnect(chain);
       }
     } catch (err) {
       console.error('지갑 연결 실패:', err);
-      setError(err.message);
+      
+      if (err.code === 4001) {
+        setError('사용자가 연결을 거부했습니다.');
+      } else {
+        setError(err.message || '지갑 연결에 실패했습니다.');
+      }
     } finally {
       setIsConnecting(false);
     }
   };
 
   // WalletConnect 연결 (QR Code)
-  const connectWalletConnect = async (chain = currentChain) => {
+  const connectWalletConnect = async (chain = currentChain || SUPPORTED_CHAINS.ETHEREUM_SEPOLIA) => {
     setIsConnecting(true);
     setError(null);
 
@@ -114,7 +241,17 @@ export const useWeb3 = () => {
       });
 
       walletConnectProvider.on('chainChanged', (chainId) => {
-        setChainId('0x' + parseInt(chainId).toString(16));
+        const newChainId = '0x' + parseInt(chainId).toString(16);
+        setChainId(newChainId);
+        
+        // currentChain 업데이트
+        const chain = Object.values(SUPPORTED_CHAINS).find(
+          c => c.chainId === newChainId
+        );
+        if (chain) {
+          setCurrentChain(chain);
+        }
+        
         window.location.reload();
       });
 
@@ -136,7 +273,7 @@ export const useWeb3 = () => {
   };
 
   // 범용 지갑 연결
-  const connectWallet = async (chain = currentChain) => {
+  const connectWallet = async (chain = currentChain || SUPPORTED_CHAINS.ETHEREUM_SEPOLIA) => {
     if (!hasWalletProvider() && !isTrustWalletInstalled()) {
       setError('지갑이 설치되어 있지 않습니다.');
       return;
@@ -151,46 +288,6 @@ export const useWeb3 = () => {
     await connectTrustWallet(chain);
   };
 
-  // 체인 전환 (멀티체인 지원)
-  const switchChain = async (chain) => {
-    try {
-      // EVM 체인만 지원
-      if (chain.type !== CHAIN_TYPES.EVM) {
-        throw new Error('현재 EVM 체인만 지원합니다.');
-      }
-
-      await window.ethereum.request({
-        method: 'wallet_switchEthereumChain',
-        params: [{ chainId: chain.chainId }]
-      });
-      setCurrentChain(chain);
-      setChainId(chain.chainId);
-    } catch (switchError) {
-      // 체인이 없으면 추가
-      if (switchError.code === 4902) {
-        try {
-          await window.ethereum.request({
-            method: 'wallet_addEthereumChain',
-            params: [{
-              chainId: chain.chainId,
-              chainName: chain.name,
-              nativeCurrency: chain.nativeCurrency,
-              rpcUrls: [chain.rpcUrl],
-              blockExplorerUrls: [chain.explorer]
-            }]
-          });
-          setCurrentChain(chain);
-          setChainId(chain.chainId);
-        } catch (addError) {
-          console.error('네트워크 추가 실패:', addError);
-          throw addError;
-        }
-      } else {
-        throw switchError;
-      }
-    }
-  };
-
   // Sepolia로 전환 (하위 호환성)
   const switchToSepolia = async () => {
     await switchChain(SUPPORTED_CHAINS.ETHEREUM_SEPOLIA);
@@ -202,6 +299,7 @@ export const useWeb3 = () => {
     setProvider(null);
     setChainId(null);
     setWalletType(null);
+    setError(null);
     console.log('지갑 연결 해제');
   };
 
@@ -219,8 +317,9 @@ export const useWeb3 = () => {
     };
 
     const handleChainChanged = (newChainId) => {
+      console.log('🔗 네트워크 변경 감지:', newChainId);
+      
       setChainId(newChainId);
-      console.log('네트워크 변경됨:', newChainId);
       
       // currentChain 업데이트
       const chain = Object.values(SUPPORTED_CHAINS).find(
@@ -228,9 +327,13 @@ export const useWeb3 = () => {
       );
       if (chain) {
         setCurrentChain(chain);
+        console.log('✅ 체인 업데이트됨:', chain.name);
+      } else {
+        console.warn('⚠️ 지원하지 않는 체인:', newChainId);
       }
       
-      window.location.reload();
+      // 페이지 새로고침 제거 - React 상태로만 관리
+      // window.location.reload();
     };
 
     window.ethereum.on('accountsChanged', handleAccountsChanged);
@@ -269,6 +372,7 @@ export const useWeb3 = () => {
           );
           if (chain) {
             setCurrentChain(chain);
+            console.log('기존 연결 복원:', chain.name);
           }
           
           if (isTrustWalletInstalled()) {
@@ -300,7 +404,7 @@ export const useWeb3 = () => {
     connectWalletConnect,
     disconnectWallet,
     switchChain,
-    switchToSepolia, // 하위 호환성
+    switchToSepolia,
     isTrustWalletInstalled
   };
 };

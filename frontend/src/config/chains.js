@@ -51,7 +51,7 @@ export const SUPPORTED_CHAINS = {
       symbol: 'MATIC',
       decimals: 18
     },
-    rpcUrl: 'https://polygon-rpc.com',
+    rpcUrl: process.env.REACT_APP_POLYGON_RPC_URL || 'https://polygon-rpc.com',
     explorer: 'https://polygonscan.com',
     isTestnet: false
   },
@@ -68,7 +68,7 @@ export const SUPPORTED_CHAINS = {
       symbol: 'ETH',
       decimals: 18
     },
-    rpcUrl: 'https://arb1.arbitrum.io/rpc',
+    rpcUrl: process.env.REACT_APP_ARBITRUM_RPC_URL || 'https://arb1.arbitrum.io/rpc',
     explorer: 'https://arbiscan.io',
     isTestnet: false
   },
@@ -85,7 +85,7 @@ export const SUPPORTED_CHAINS = {
       symbol: 'ETH',
       decimals: 18
     },
-    rpcUrl: 'https://mainnet.optimism.io',
+    rpcUrl: process.env.REACT_APP_OPTIMISM_RPC_URL || 'https://mainnet.optimism.io',
     explorer: 'https://optimistic.etherscan.io',
     isTestnet: false
   },
@@ -102,7 +102,7 @@ export const SUPPORTED_CHAINS = {
       symbol: 'ETH',
       decimals: 18
     },
-    rpcUrl: 'https://mainnet.base.org',
+    rpcUrl: process.env.REACT_APP_BASE_RPC_URL || 'https://mainnet.base.org',
     explorer: 'https://basescan.org',
     isTestnet: false
   }

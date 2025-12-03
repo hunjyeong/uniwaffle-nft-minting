@@ -43,8 +43,12 @@ REACT_APP_PINATA_SECRET_KEY=your_pinata_secret_key
 npx hardhat compile
 
 # Sepolia 테스트넷 배포
-npx hardhat run scripts/deploy.js --network sepolia
-npx hardhat run scripts/deploy-native.js --network sepolia
+npx hardhat run scripts/NFT_deploy.js --network sepolia
+npx hardhat run scripts/SBT_deploy.js --network sepolia
+
+# Mainnet에 배포
+npx hardhat run scripts/NFT_deploy.js --network mainnet
+npx hardhat run scripts/SBT_deploy.js --network mainnet
 
 # 배포된 컨트랙트 주소를 frontend/.env에 추가
 REACT_APP_SEPOLIA_NATIVE_ADDRESS=??

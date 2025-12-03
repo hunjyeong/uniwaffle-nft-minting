@@ -206,7 +206,7 @@ const MintForm = () => {
                 checked={nftType === 'soulbound'}
                 onChange={(e) => setNftType(e.target.value)}
               />
-              <span>Soulbound Token (전송 불가)</span>
+              <span>Soulbound Token</span>
             </label>
             <label className="radio-label">
               <input

@@ -1,5 +1,7 @@
 import axios from 'axios';
-import { PINATA_JWT, PINATA_GATEWAY } from '../config/contracts.js';
+
+const PINATA_JWT = process.env.REACT_APP_PINATA_JWT;
+const PINATA_GATEWAY = process.env.REACT_APP_PINATA_GATEWAY;
 
 /**
  * 이미지를 Pinata에 업로드

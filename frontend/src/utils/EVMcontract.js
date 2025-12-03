@@ -1,12 +1,11 @@
 import { ethers } from 'ethers';
 import {
-  SOULBOUND_ABI,
   NATIVENFT_ABI,
+  SOULBOUND_ABI,
   FRACTIONAL_ABI
 } from '../config/contracts.js';
 
-// 컨트랙트 주소 (체인별로 다를 수 있음)
-// config/contracts.js에서 가져온 주소를 사용하거나 여기서 체인별로 관리
+// 컨트랙트 주소 (체인별로 환경 변수에서 로드)
 const CONTRACT_ADDRESSES = {
   // Ethereum Sepolia
   '0xaa36a7': {
@@ -22,37 +21,37 @@ const CONTRACT_ADDRESSES = {
   },
   // Polygon
   '0x89': {
-    native: '',
-    soulbound: '',
-    fractional: ''
+    native: process.env.REACT_APP_POLYGON_NATIVE_ADDRESS || '',
+    soulbound: process.env.REACT_APP_POLYGON_SOULBOUND_ADDRESS || '',
+    fractional: process.env.REACT_APP_POLYGON_FRACTIONAL_ADDRESS || ''
   },
   // Arbitrum
   '0xa4b1': {
-    native: '',
-    soulbound: '',
-    fractional: ''
+    native: process.env.REACT_APP_ARBITRUM_NATIVE_ADDRESS || '',
+    soulbound: process.env.REACT_APP_ARBITRUM_SOULBOUND_ADDRESS || '',
+    fractional: process.env.REACT_APP_ARBITRUM_FRACTIONAL_ADDRESS || ''
   },
   // Optimism
   '0xa': {
-    native: '',
-    soulbound: '',
-    fractional: ''
+    native: process.env.REACT_APP_OPTIMISM_NATIVE_ADDRESS || '',
+    soulbound: process.env.REACT_APP_OPTIMISM_SOULBOUND_ADDRESS || '',
+    fractional: process.env.REACT_APP_OPTIMISM_FRACTIONAL_ADDRESS || ''
   },
   // Base
   '0x2105': {
-    native: '',
-    soulbound: '',
-    fractional: ''
+    native: process.env.REACT_APP_BASE_NATIVE_ADDRESS || '',
+    soulbound: process.env.REACT_APP_BASE_SOULBOUND_ADDRESS || '',
+    fractional: process.env.REACT_APP_BASE_FRACTIONAL_ADDRESS || ''
   }
 };
 
 // ABI 매핑
 const getABI = (nftType) => {
   switch(nftType) {
-    case 'soulbound':
-      return SOULBOUND_ABI;
     case 'native':
       return NATIVENFT_ABI;
+    case 'soulbound':
+      return SOULBOUND_ABI;
     case 'fractional':
       return FRACTIONAL_ABI;
     default:
@@ -72,7 +71,7 @@ export const getContract = async (provider, nftType) => {
     const contractAddress = CONTRACT_ADDRESSES[chainId]?.[nftType];
     
     if (!contractAddress || contractAddress === '') {
-      throw new Error(`${chainId} 체인에서 ${nftType} 컨트랙트를 찾을 수 없습니다.`);
+      throw new Error(`${chainId} 체인에서 ${nftType} 컨트랙트를 찾을 수 없습니다. 컨트랙트를 먼저 배포해주세요.`);
     }
 
     const abi = getABI(nftType);
@@ -88,57 +87,81 @@ export const getContract = async (provider, nftType) => {
  */
 export const mintEvmNFT = async (provider, nftType, recipientAddress, tokenURI) => {
   try {
-    const contract = await getContract(provider, nftType);
+    const signer = await provider.getSigner();
+    const network = await provider.getNetwork();
+    const chainId = '0x' + network.chainId.toString(16);
+
+    const contractAddress = CONTRACT_ADDRESSES[chainId]?.[nftType];
+    
+    if (!contractAddress || contractAddress === '') {
+      throw new Error(`${chainId} 체인에서 ${nftType} 컨트랙트를 찾을 수 없습니다.`);
+    }
+
+    const abi = getABI(nftType);
+    const contract = new ethers.Contract(contractAddress, abi, signer);
     
     console.log('민팅 시작:', {
       nftType,
       recipient: recipientAddress,
       tokenURI,
-      contractAddress: await contract.getAddress()
+      contractAddress
     });
     
-    // mintWithURI 함수 사용
-    const tx = await contract.mintWithURI(recipientAddress, tokenURI);
+    console.log('mintWithURI 호출 중...');
+    
+    // 🔥 데이터 인코딩하고 0x 강제로 붙이기
+    let data = contract.interface.encodeFunctionData('mintWithURI', [
+      recipientAddress,
+      tokenURI
+    ]);
+    
+    // 0x 접두사가 없으면 추가
+    if (!data.startsWith('0x')) {
+      data = '0x' + data;
+      console.log('0x 접두사 추가됨');
+    }
+    
+    console.log('인코딩된 데이터:', data.slice(0, 20) + '...');
+    
+    // 수동으로 트랜잭션 전송
+    const tx = await signer.sendTransaction({
+      to: contractAddress,
+      data: data
+    });
     
     console.log('트랜잭션 전송됨:', tx.hash);
-    console.log('트랜잭션 대기 중...');
+    console.log('확인 대기 중...');
     
     const receipt = await tx.wait();
     console.log('트랜잭션 완료:', receipt);
     
-    // Transfer 이벤트에서 tokenId 추출
+    // tokenId 추출
     let tokenId = null;
     
-    // 이벤트 로그에서 tokenId 찾기
     for (const log of receipt.logs) {
       try {
-        const parsedLog = contract.interface.parseLog(log);
-        if (parsedLog && parsedLog.name === 'SoulboundMinted') {
-          tokenId = parsedLog.args.tokenId.toString();
-          break;
-        }
+        const parsedLog = contract.interface.parseLog({
+          topics: log.topics,
+          data: log.data
+        });
+        
         if (parsedLog && parsedLog.name === 'NFTMinted') {
           tokenId = parsedLog.args.tokenId.toString();
           break;
         }
-        if (parsedLog && parsedLog.name === 'FractionalMinted') {
-          tokenId = parsedLog.args.tokenId.toString();
-          break;
-        }
       } catch (e) {
-        // 파싱 실패한 로그는 무시
+        // 무시
       }
     }
     
-    // tokenId를 못 찾았으면 topics에서 추출
     if (!tokenId && receipt.logs.length > 0) {
       try {
         const transferLog = receipt.logs.find(log => log.topics.length >= 4);
         if (transferLog) {
-          tokenId = ethers.toBigInt(transferLog.topics[3]).toString();
+          tokenId = ethers.getBigInt(transferLog.topics[3]).toString();
         }
       } catch (e) {
-        console.warn('tokenId 추출 실패:', e);
+        console.warn('tokenId 추출 실패');
       }
     }
     
@@ -152,22 +175,19 @@ export const mintEvmNFT = async (provider, nftType, recipientAddress, tokenURI) 
   } catch (error) {
     console.error('EVM NFT 민팅 실패:', error);
     
-    // 사용자가 거부한 경우
     if (error.code === 'ACTION_REJECTED' || error.code === 4001) {
       throw new Error('트랜잭션이 거부되었습니다.');
     }
     
-    // 가스 부족
     if (error.code === 'INSUFFICIENT_FUNDS' || error.message?.includes('insufficient funds')) {
       throw new Error('가스비가 부족합니다.');
     }
     
-    // 권한 없음
-    if (error.message?.includes('Ownable: caller is not the owner')) {
+    if (error.message?.includes('Ownable') || error.message?.includes('owner')) {
       throw new Error('민팅 권한이 없습니다. 컨트랙트 소유자만 민팅할 수 있습니다.');
     }
     
-    throw error;
+    throw new Error(error.reason || error.message || '민팅에 실패했습니다.');
   }
 };
 
@@ -276,3 +296,4 @@ export const setContractAddress = (chainId, nftType, address) => {
 export const getContractAddress = (chainId, nftType) => {
   return CONTRACT_ADDRESSES[chainId]?.[nftType];
 };
+

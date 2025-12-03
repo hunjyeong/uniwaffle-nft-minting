@@ -3,6 +3,7 @@ import { useWeb3 } from '../hooks/useWeb3';
 import { getEvmNFTs } from '../utils/EVMcontract';
 import { CHAIN_TYPES } from '../config/chains';
 import axios from 'axios';
+import './NFTDisplay.css';
 
 const NFTDisplay = () => {
   const { account, provider, isConnected, currentChain } = useWeb3();
@@ -12,18 +13,39 @@ const NFTDisplay = () => {
   const [error, setError] = useState(null);
 
   // NFT 메타데이터 가져오기
-  const fetchMetadata = async (tokenURI) => {
+  const fetchMetadata = async (uri) => {
     try {
-      // ipfs:// URL을 HTTP 게이트웨이로 변환
-      let uri = tokenURI;
-      if (uri.startsWith('ipfs://')) {
-        uri = uri.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/');
+      if (!uri) return null;
+      
+      // IPFS URI 정규화
+      let url = uri;
+      
+      // 중복된 게이트웨이 URL 제거
+      if (uri.includes('gateway.pinata.cloud/ipfs/ipfs://')) {
+        url = uri.replace('gateway.pinata.cloud/ipfs/ipfs://', 'gateway.pinata.cloud/ipfs/');
+      } else if (uri.includes('gateway.pinata.cloud/ipfs/ipfs:/')) {
+        url = uri.replace('gateway.pinata.cloud/ipfs/ipfs:/', 'gateway.pinata.cloud/ipfs/');
+      }
+      // ipfs:// 프로토콜 처리
+      else if (uri.startsWith('ipfs://')) {
+        const cid = uri.replace('ipfs://', '');
+        url = `https://gateway.pinata.cloud/ipfs/${cid}`;
+      } 
+      // 잘못된 형식 ipfs:/ 처리
+      else if (uri.startsWith('ipfs:/')) {
+        const cid = uri.replace('ipfs:/', '');
+        url = `https://gateway.pinata.cloud/ipfs/${cid}`;
+      } 
+      // CID만 있는 경우
+      else if (uri.startsWith('Qm') || uri.startsWith('bafy')) {
+        url = `https://gateway.pinata.cloud/ipfs/${uri}`;
       }
       
-      const response = await axios.get(uri);
+      console.log('📥 메타데이터 요청:', url);
+      const response = await axios.get(url);
       return response.data;
-    } catch (err) {
-      console.error('메타데이터 로드 실패:', err);
+    } catch (error) {
+      console.error('메타데이터 로드 실패:', error.message);
       return null;
     }
   };
@@ -156,12 +178,17 @@ const NFTDisplay = () => {
 
   // 계정 변경 시 NFT 다시 로드
   useEffect(() => {
-    if (isConnected && account) {
+    if (isConnected && account && currentChain) {
+      console.log('🔄 체인/계정 변경 감지, NFT 재로드:', {
+        chain: currentChain.name,
+        chainId: currentChain.id,
+        account
+      });
       loadNFTs();
     } else {
       setNfts([]);
     }
-  }, [isConnected, account, currentChain, loadNFTs]);
+  }, [isConnected, account, currentChain?.id]);
 
   if (!isConnected) {
     return (
@@ -178,7 +205,6 @@ const NFTDisplay = () => {
         <div className="header-info">
           {currentChain && (
             <span className="chain-badge">
-              <span className="chain-icon">{currentChain.icon}</span>
               {currentChain.shortName}
             </span>
           )}
@@ -232,7 +258,6 @@ const NFTDisplay = () => {
                 </div>
 
                 <div className="nft-chain">
-                  <span className="chain-icon">{currentChain?.icon}</span>
                   <span>{nft.chain}</span>
                 </div>
 
@@ -251,222 +276,6 @@ const NFTDisplay = () => {
           ))}
         </div>
       )}
-
-      <style jsx>{`
-        .nft-display {
-          max-width: 1200px;
-          margin: 40px auto;
-          padding: 0 20px;
-        }
-
-        .nft-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 30px;
-          flex-wrap: wrap;
-          gap: 16px;
-        }
-
-        .nft-header h2 {
-          margin: 0;
-          font-size: 28px;
-          color: #212529;
-        }
-
-        .header-info {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-
-        .chain-badge {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          padding: 8px 14px;
-          background: #e7f5ff;
-          border: 2px solid #74c0fc;
-          border-radius: 8px;
-          font-weight: 600;
-          color: #1864ab;
-          font-size: 14px;
-        }
-
-        .chain-icon {
-          font-size: 18px;
-        }
-
-        .refresh-button {
-          padding: 10px 18px;
-          background: white;
-          border: 2px solid #dee2e6;
-          border-radius: 8px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .refresh-button:hover:not(:disabled) {
-          background: #f8f9fa;
-          border-color: #adb5bd;
-        }
-
-        .refresh-button:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-
-        .loading, .no-nfts {
-          text-align: center;
-          padding: 60px 20px;
-          color: #868e96;
-          font-size: 16px;
-        }
-
-        .error-message {
-          padding: 16px;
-          background: #ffe0e0;
-          color: #c92a2a;
-          border-radius: 8px;
-          margin-bottom: 20px;
-        }
-
-        .nft-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-          gap: 24px;
-        }
-
-        .nft-card {
-          background: white;
-          border-radius: 12px;
-          overflow: hidden;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-          transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .nft-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-        }
-
-        .nft-image {
-          width: 100%;
-          height: 280px;
-          background: #f8f9fa;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          overflow: hidden;
-        }
-
-        .nft-image img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
-        .no-image {
-          color: #868e96;
-          font-size: 14px;
-        }
-
-        .nft-info {
-          padding: 20px;
-        }
-
-        .nft-info h3 {
-          margin: 0 0 8px 0;
-          font-size: 18px;
-          color: #212529;
-        }
-
-        .nft-description {
-          margin: 0 0 16px 0;
-          font-size: 14px;
-          color: #868e96;
-          line-height: 1.5;
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-        }
-
-        .nft-meta {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 12px;
-        }
-
-        .nft-type {
-          padding: 4px 10px;
-          border-radius: 6px;
-          font-size: 12px;
-          font-weight: 600;
-        }
-
-        .nft-type.soulbound {
-          background: #ffe0e0;
-          color: #c92a2a;
-        }
-
-        .nft-type.native {
-          background: #d3f9d8;
-          color: #2b8a3e;
-        }
-
-        .nft-type.fractional {
-          background: #e7f5ff;
-          color: #1864ab;
-        }
-
-        .nft-token-id {
-          font-family: monospace;
-          font-size: 12px;
-          color: #868e96;
-        }
-
-        .nft-chain {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          padding: 8px;
-          background: #f8f9fa;
-          border-radius: 6px;
-          font-size: 13px;
-          color: #495057;
-          margin-bottom: 12px;
-        }
-
-        .nft-attributes {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-          margin-top: 12px;
-        }
-
-        .attribute {
-          flex: 1 1 calc(50% - 4px);
-          padding: 8px;
-          background: #f8f9fa;
-          border-radius: 6px;
-          font-size: 12px;
-        }
-
-        .attr-type {
-          display: block;
-          color: #868e96;
-          margin-bottom: 4px;
-          font-weight: 600;
-        }
-
-        .attr-value {
-          display: block;
-          color: #495057;
-        }
-      `}</style>
     </div>
   );
 };

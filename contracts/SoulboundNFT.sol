@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
-contract SoulboundToken is ERC721, Ownable {
+contract SoulboundNFT is ERC721, Ownable {
     using Strings for uint256;
 
     uint256 private _tokenIdCounter;
