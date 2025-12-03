@@ -1,131 +1,132 @@
 export const CHAIN_TYPES = {
-    EVM: 'evm'
-  };
-  
-  export const SUPPORTED_CHAINS = {
-    ETHEREUM_MAINNET: {
-      id: 1,
-      chainId: '0x1',
-      type: CHAIN_TYPES.EVM,
-      name: 'Ethereum Mainnet',
-      shortName: 'Ethereum L1',
-      rpcUrl: 'https://eth-mainnet.g.alchemy.com/v2/YOUR_KEY',
-      explorer: 'https://etherscan.io',
-      nativeCurrency: { 
-        name: 'Ether', 
-        symbol: 'ETH', 
-        decimals: 18 
-      },
-      icon: '⟠'
+  EVM: 'EVM',
+  SOLANA: 'SOLANA',
+  // 필요시 추가
+};
+
+export const SUPPORTED_CHAINS = {
+  ETHEREUM_MAINNET: {
+    id: 'ethereum',
+    chainId: '0x1',
+    name: 'Ethereum Mainnet',
+    shortName: 'Ethereum Mainnet',
+    icon: 'https://s2.coinmarketcap.com/static/img/coins/64x64/1027.png',
+    type: CHAIN_TYPES.EVM,
+    nativeCurrency: {
+      name: 'Ether',
+      symbol: 'ETH',
+      decimals: 18
     },
-    ETHEREUM_SEPOLIA: {
-      id: 11155111,
-      chainId: '0xaa36a7',
-      type: CHAIN_TYPES.EVM,
-      name: 'Ethereum Sepolia',
-      shortName: 'Sepolia Testnet',
-      rpcUrl: 'https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY',
-      explorer: 'https://sepolia.etherscan.io',
-      nativeCurrency: { 
-        name: 'Sepolia Ether', 
-        symbol: 'ETH', 
-        decimals: 18 
-      },
-      icon: '⟠',
-      isTestnet: true
+    rpcUrl: process.env.REACT_APP_MAINNET_RPC_URL || 'https://ethereum.publicnode.com',
+    explorer: 'https://etherscan.io',
+    isTestnet: false
+  },
+  
+  ETHEREUM_SEPOLIA: {
+    id: 'sepolia',
+    chainId: '0xaa36a7',
+    name: 'Sepolia Testnet',
+    shortName: 'Sepolia Testnet',
+    icon: 'https://s2.coinmarketcap.com/static/img/coins/64x64/1027.png',
+    type: CHAIN_TYPES.EVM,
+    nativeCurrency: {
+      name: 'Sepolia Ether',
+      symbol: 'ETH',
+      decimals: 18
     },
-    POLYGON: {
-      id: 137,
-      chainId: '0x89',
-      type: CHAIN_TYPES.EVM,
-      name: 'Polygon',
-      shortName: 'Polygon',
-      rpcUrl: 'https://polygon-rpc.com',
-      explorer: 'https://polygonscan.com',
-      nativeCurrency: { 
-        name: 'MATIC', 
-        symbol: 'MATIC', 
-        decimals: 18 
-      },
-      icon: '⬡',
-      category: 'L2'
+    rpcUrl: process.env.REACT_APP_SEPOLIA_RPC_URL || 'https://ethereum-sepolia-rpc.publicnode.com',
+    explorer: 'https://sepolia.etherscan.io',
+    isTestnet: true
+  },
+
+  POLYGON: {
+    id: 'polygon',
+    chainId: '0x89',
+    name: 'Polygon Mainnet',
+    shortName: 'Polygon',
+    icon: 'https://s2.coinmarketcap.com/static/img/coins/64x64/3890.png',
+    type: CHAIN_TYPES.EVM,
+    nativeCurrency: {
+      name: 'MATIC',
+      symbol: 'MATIC',
+      decimals: 18
     },
-    ARBITRUM: {
-      id: 42161,
-      chainId: '0xa4b1',
-      type: CHAIN_TYPES.EVM,
-      name: 'Arbitrum One',
-      shortName: 'Arbitrum',
-      rpcUrl: 'https://arb1.arbitrum.io/rpc',
-      explorer: 'https://arbiscan.io',
-      nativeCurrency: { 
-        name: 'Ether', 
-        symbol: 'ETH', 
-        decimals: 18 
-      },
-      icon: '🔷',
-      category: 'L2'
+    rpcUrl: 'https://polygon-rpc.com',
+    explorer: 'https://polygonscan.com',
+    isTestnet: false
+  },
+
+  ARBITRUM: {
+    id: 'arbitrum',
+    chainId: '0xa4b1',
+    name: 'Arbitrum One',
+    shortName: 'Arbitrum',
+    icon: 'https://s2.coinmarketcap.com/static/img/coins/64x64/11841.png',
+    type: CHAIN_TYPES.EVM,
+    nativeCurrency: {
+      name: 'Ether',
+      symbol: 'ETH',
+      decimals: 18
     },
-    OPTIMISM: {
-      id: 10,
-      chainId: '0xa',
-      type: CHAIN_TYPES.EVM,
-      name: 'Optimism',
-      shortName: 'Optimism',
-      rpcUrl: 'https://mainnet.optimism.io',
-      explorer: 'https://optimistic.etherscan.io',
-      nativeCurrency: { 
-        name: 'Ether', 
-        symbol: 'ETH', 
-        decimals: 18 
-      },
-      icon: '🔴',
-      category: 'L2'
+    rpcUrl: 'https://arb1.arbitrum.io/rpc',
+    explorer: 'https://arbiscan.io',
+    isTestnet: false
+  },
+
+  OPTIMISM: {
+    id: 'optimism',
+    chainId: '0xa',
+    name: 'Optimism',
+    shortName: 'Optimism',
+    icon: 'https://s2.coinmarketcap.com/static/img/coins/64x64/11840.png',
+    type: CHAIN_TYPES.EVM,
+    nativeCurrency: {
+      name: 'Ether',
+      symbol: 'ETH',
+      decimals: 18
     },
-    BASE: {
-      id: 8453,
-      chainId: '0x2105',
-      type: CHAIN_TYPES.EVM,
-      name: 'Base',
-      shortName: 'Base',
-      rpcUrl: 'https://mainnet.base.org',
-      explorer: 'https://basescan.org',
-      nativeCurrency: { 
-        name: 'Ether', 
-        symbol: 'ETH', 
-        decimals: 18 
-      },
-      icon: '🔵',
-      category: 'L2'
-    }
+    rpcUrl: 'https://mainnet.optimism.io',
+    explorer: 'https://optimistic.etherscan.io',
+    isTestnet: false
+  },
+
+  BASE: {
+    id: 'base',
+    chainId: '0x2105',
+    name: 'Base',
+    shortName: 'Base',
+    icon: 'https://s2.coinmarketcap.com/static/img/coins/64x64/28871.png',
+    type: CHAIN_TYPES.EVM,
+    nativeCurrency: {
+      name: 'Ether',
+      symbol: 'ETH',
+      decimals: 18
+    },
+    rpcUrl: 'https://mainnet.base.org',
+    explorer: 'https://basescan.org',
+    isTestnet: false
+  }
+};
+
+// 카테고리별 체인 그룹화
+export const getChainsByCategory = () => {
+  return {
+    'Ethereum L1': [
+      SUPPORTED_CHAINS.ETHEREUM_MAINNET,
+      SUPPORTED_CHAINS.ETHEREUM_SEPOLIA
+    ],
+    'Ethereum L2': [
+      SUPPORTED_CHAINS.POLYGON,
+      SUPPORTED_CHAINS.ARBITRUM,
+      SUPPORTED_CHAINS.OPTIMISM,
+      SUPPORTED_CHAINS.BASE
+    ]
   };
-  
-  // 체인을 카테고리별로 그룹화
-  export const getChainsByCategory = () => {
-    const categories = {
-      'Ethereum L1': [],
-      'Ethereum L2': []
-    };
-  
-    Object.values(SUPPORTED_CHAINS).forEach(chain => {
-      if (chain.category === 'L2') {
-        categories['Ethereum L2'].push(chain);
-      } else {
-        categories['Ethereum L1'].push(chain);
-      }
-    });
-  
-    return categories;
-  };
-  
-  // 체인 ID로 체인 정보 가져오기
-  export const getChainById = (chainId) => {
-    return Object.values(SUPPORTED_CHAINS).find(
-      chain => chain.id === chainId || chain.chainId === chainId
-    );
-  };
-  
-  // EVM 체인만 필터링
-  export const getEvmChains = () => {
-    return Object.values(SUPPORTED_CHAINS);
-  };
+};
+
+// chainId로 체인 찾기
+export const getChainById = (chainId) => {
+  return Object.values(SUPPORTED_CHAINS).find(
+    chain => chain.chainId === chainId
+  );
+};

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useWeb3 } from '../hooks/useWeb3_orig.js';
+import { useWeb3 } from '../hooks/useWeb3.js';
 import { uploadNFT } from '../utils/ipfs.js';
 import { mintEvmNFT } from '../utils/EVMcontract.js';
 import { CHAIN_TYPES } from '../config/chains.js';
