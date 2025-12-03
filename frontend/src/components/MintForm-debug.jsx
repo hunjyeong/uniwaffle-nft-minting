@@ -161,11 +161,11 @@ const MintForm = () => {
             <label className="radio-label">
               <input
                 type="radio"
-                value="transferable"
-                checked={nftType === 'transferable'}
+                value="native"
+                checked={nftType === 'native'}
                 onChange={(e) => setNftType(e.target.value)}
               />
-              <span>🔄 Transferable (전송 가능)</span>
+              <span>🔄 Native NFT (전송 가능)</span>
             </label>
           </div>
         </div>

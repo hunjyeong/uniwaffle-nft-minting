@@ -4,12 +4,12 @@ const { ethers } = hre;
 async function main() {
     const [deployer] = await ethers.getSigners();
     
-    console.log("Deploying TransferableNFT with account:", deployer.address);
+    console.log("Deploying Native NFT with account:", deployer.address);
     
-    const TransferableNFT = await ethers.getContractFactory("TransferableNFT");
+    const NativeNFT = await ethers.getContractFactory("NativeNFT");
     
-    const nft = await TransferableNFT.deploy(
-        "My Transferable NFT",           // 이름
+    const nft = await NativeNFT.deploy(
+        "My Native NFT",           // 이름
         "TNFT",                          // 심볼
         "https://gateway.pinata.cloud/ipfs/",  // baseURI
         10000,                           // maxSupply (0 = 무제한)
@@ -19,7 +19,7 @@ async function main() {
     await nft.waitForDeployment();
     const address = await nft.getAddress();
     
-    console.log("TransferableNFT deployed to:", address);
+    console.log("NativeNFT deployed to:", address);
     console.log("\nContract Details:");
     console.log("   Name:", await nft.name());
     console.log("   Symbol:", await nft.symbol());
@@ -27,7 +27,7 @@ async function main() {
     console.log("   Mint Price:", ethers.formatEther(await nft.mintPrice()), "ETH");
     
     console.log("\nSave this address to .env:");
-    console.log(`   TRANSFERABLE_ADDRESS=${address}`);
+    console.log(`   NATIVENFT_ADDRESS=${address}`);
 }
 
 main()

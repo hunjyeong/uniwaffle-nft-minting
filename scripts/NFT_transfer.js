@@ -5,16 +5,16 @@ import { config } from 'dotenv';
 config();
 
 async function main() {
-    const contractAddress = process.env.TRANSFERABLE_ADDRESS;
+    const contractAddress = process.env.NATIVENFT_ADDRESS;
     const toAddress = "0x80d48039fc26588396Fc59e3101EF4580979468d"; // ← 받을 주소 (다른 주소로 변경)
     
     if (!contractAddress) {
-        console.error('❌ TRANSFERABLE_ADDRESS not found in .env');
+        console.error('❌ NATIVENFT_ADDRESS not found in .env');
         return;
     }
     
-    const TransferableNFT = await ethers.getContractFactory("TransferableNFT");
-    const nft = TransferableNFT.attach(contractAddress);
+    const NATIVENFT = await ethers.getContractFactory("NATIVENFT");
+    const nft = NATIVENFT.attach(contractAddress);
     
     const [signer] = await ethers.getSigners();
     const fromAddress = await signer.getAddress();

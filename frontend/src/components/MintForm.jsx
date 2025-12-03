@@ -6,7 +6,7 @@ import { mintNFT } from '../utils/contract.js';
 const MintForm = () => {
   const { account, provider, isConnected, isCorrectNetwork } = useWeb3();
   
-  const [nftType, setNftType] = useState('transferable');
+  const [nftType, setNftType] = useState('native');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [imageFile, setImageFile] = useState(null);
@@ -102,11 +102,11 @@ const MintForm = () => {
             <label className="radio-label">
               <input
                 type="radio"
-                value="transferable"
-                checked={nftType === 'transferable'}
+                value="native"
+                checked={nftType === 'native'}
                 onChange={(e) => setNftType(e.target.value)}
               />
-              <span>Transferable NFT</span>
+              <span>Native NFT</span>
             </label>
             <label className="radio-label">
               <input

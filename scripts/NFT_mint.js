@@ -11,9 +11,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 async function main() {
-    console.log('🚀 Minting Transferable NFT...\n');
+    console.log('🚀 Minting Native NFT...\n');
     
-    const contractAddress = process.env.TRANSFERABLE_ADDRESS;
+    const contractAddress = process.env.NATIVENFT_ADDRESS;
     // const recipientAddress = process.env.RECIPIENT_ADDRESS; // ← 수동 설정 대신 서명자 주소 사용
 
     // 서명자 주소 자동 가져오기
@@ -23,7 +23,7 @@ async function main() {
     console.log(`👤 Minting to Signer: ${recipientAddress}\n`);
     
     if (!contractAddress) {
-        throw new Error('❌ TRANSFERABLE_ADDRESS not found in .env');
+        throw new Error('❌ NATIVENFT_ADDRESS not found in .env');
     }
     
     // 이미지 업로드
@@ -37,7 +37,7 @@ async function main() {
         "This NFT can be transferred and sold",
         imageResult.url,
         [
-            { trait_type: "Type", value: "Transferable" },
+            { trait_type: "Type", value: "native" },
             { trait_type: "Rarity", value: "Common" },
             { trait_type: "Edition", value: "1" }
         ]
@@ -47,8 +47,8 @@ async function main() {
     const metadataResult = await uploadMetadata(metadata);
     
     // NFT 민팅
-    const TransferableNFT = await ethers.getContractFactory("TransferableNFT");
-    const nft = TransferableNFT.attach(contractAddress);
+    const NATIVENFT = await ethers.getContractFactory("NATIVENFT");
+    const nft = NATIVENFT.attach(contractAddress);
     
     console.log('🎨 Minting NFT...');
     const tx = await nft.mintWithURI(recipientAddress, metadataResult.url);

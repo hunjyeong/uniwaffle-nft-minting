@@ -88,26 +88,26 @@ const NFTDisplay = () => {
         console.error('Soulbound Token 조회 실패:', err);
       }
 
-      // Transferable NFT 조회
+      // native NFT 조회
       try {
-        const transferableContract = await getContract(provider, 'transferable');
-        const transferableTokens = await transferableContract.tokensOfOwner(account);
+        const nativeContract = await getContract(provider, 'native');
+        const nativeTokens = await nativeContract.tokensOfOwner(account);
         
-        for (let tokenId of transferableTokens) {
-          const tokenURI = await transferableContract.tokenURI(tokenId);
-          console.log('Transferable Token URI:', tokenURI);
+        for (let tokenId of nativeTokens) {
+          const tokenURI = await nativeContract.tokenURI(tokenId);
+          console.log('Native NFT Token URI:', tokenURI);
           const metadata = await fetchMetadata(tokenURI);
-          console.log('Transferable Metadata:', metadata);
+          console.log('Native NFT Metadata:', metadata);
           
           allNFTs.push({
             tokenId: tokenId.toString(),
-            type: 'transferable',
+            type: 'native',
             tokenURI,
             metadata
           });
         }
       } catch (err) {
-        console.error('Transferable NFT 조회 실패:', err);
+        console.error('Native NFT 조회 실패:', err);
       }
 
       console.log('All NFTs loaded:', allNFTs);
@@ -180,7 +180,7 @@ const NFTDisplay = () => {
                 
                 <div className="nft-meta">
                   <span className={`nft-type ${nft.type}`}>
-                    {nft.type === 'soulbound' ? '🔒 Soulbound' : '🔄 Transferable'}
+                    {nft.type === 'soulbound' ? '🔒 Soulbound' : '🔄 Native NFT'}
                   </span>
                   <span className="nft-token-id">#{nft.tokenId}</span>
                 </div>

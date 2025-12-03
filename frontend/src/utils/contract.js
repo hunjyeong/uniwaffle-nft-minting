@@ -1,10 +1,10 @@
 import { ethers } from 'ethers';
 import {
   SOULBOUND_ADDRESS,
-  TRANSFERABLE_ADDRESS,
+  NATIVENFT_ADDRESS,
   FRACTIONAL_ADDRESS,
   SOULBOUND_ABI,
-  TRANSFERABLE_ABI,
+  NATIVENFT_ABI,
   FRACTIONAL_ABI
 } from '../config/contracts.js';
 
@@ -14,8 +14,8 @@ export const getContract = async (provider, contractType) => {
   
   if (contractType === 'soulbound') {
     return new ethers.Contract(SOULBOUND_ADDRESS, SOULBOUND_ABI, signer);
-  } else if (contractType === 'transferable') {
-    return new ethers.Contract(TRANSFERABLE_ADDRESS, TRANSFERABLE_ABI, signer);
+  } else if (contractType === 'native') {
+    return new ethers.Contract(NATIVENFT_ADDRESS, NATIVENFT_ABI, signer);
   } else if (contractType === 'fractional') {
     return new ethers.Contract(FRACTIONAL_ADDRESS, FRACTIONAL_ABI, signer);
   }
@@ -108,7 +108,7 @@ export const transferNFT = async (provider, contractType, fromAddress, toAddress
       throw new Error('Soulbound Token은 전송할 수 없습니다.');
     }
 
-    const contract = await getContract(provider, 'transferable');
+    const contract = await getContract(provider, 'native');
     
     console.log('전송 시작:', { from: fromAddress, to: toAddress, tokenId });
     const tx = await contract.transferFrom(fromAddress, toAddress, tokenId);

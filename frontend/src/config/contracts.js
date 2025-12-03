@@ -1,5 +1,5 @@
 export const SOULBOUND_ADDRESS = process.env.REACT_APP_SOULBOUND_ADDRESS;
-export const TRANSFERABLE_ADDRESS = process.env.REACT_APP_TRANSFERABLE_ADDRESS;
+export const NATIVENFT_ADDRESS = process.env.REACT_APP_NATIVENFT_ADDRESS;
 export const FRACTIONAL_ADDRESS = process.env.REACT_APP_FRACTIONAL_ADDRESS;
 
 // Hardhat compile 후 생성된 ABI 가져오기
@@ -26,7 +26,7 @@ export const SOULBOUND_ABI = [
     "event SoulboundMinted(address indexed to, uint256 indexed tokenId)"
 ];
   
-export const TRANSFERABLE_ABI = [
+export const NATIVENFT_ABI = [
     "function mint(address to) public returns (uint256)",
     "function mintTo(address to) public returns (uint256)",
     "function mintWithURI(address to, string memory uri) public returns (uint256)",
