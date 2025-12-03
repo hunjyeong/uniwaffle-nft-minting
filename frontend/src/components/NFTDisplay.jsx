@@ -248,9 +248,9 @@ const NFTDisplay = () => {
                 
                 <div className="nft-meta">
                   <span className={`nft-type ${nft.type}`}>
-                    {nft.type === 'soulbound' && '🔒 Soulbound'}
-                    {nft.type === 'native' && '🔄 Native NFT'}
-                    {nft.type === 'fractional' && '💎 Fractional'}
+                    {nft.type === 'soulbound' && 'Soulbound'}
+                    {nft.type === 'native' && 'Native NFT'}
+                    {nft.type === 'fractional' && 'Fractional'}
                   </span>
                   <span className="nft-token-id">
                     #{nft.tokenId}
@@ -271,6 +271,22 @@ const NFTDisplay = () => {
                     ))}
                   </div>
                 )}
+
+                <div className="nft-actions">
+                  <button
+                    className="action-btn manage"
+                    onClick={() => {
+                      const nftData = encodeURIComponent(JSON.stringify(nft));
+                      window.open(
+                        `/nft-manage?nft=${nftData}`,
+                        'NFT관리',
+                        'width=900,height=800,left=200,top=100'
+                      );
+                    }}
+                  >
+                    전송 및 소각
+                  </button>
+                </div>
               </div>
             </div>
           ))}

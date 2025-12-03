@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
 import WalletConnect from './components/WalletConnect';
 import MintForm from './components/MintForm';
 import NFTDisplay from './components/NFTDisplay';
+import NFTManagePage from './components/NFTManagePage';
 
-function App() {
+function MainApp() {
   const [activeTab, setActiveTab] = useState('mint');
 
   return (
@@ -59,6 +61,17 @@ function App() {
         </div>
       </footer>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<MainApp />} />
+        <Route path="/nft-manage" element={<NFTManagePage />} />
+      </Routes>
+    </Router>
   );
 }
 

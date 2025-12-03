@@ -297,3 +297,45 @@ export const getContractAddress = (chainId, nftType) => {
   return CONTRACT_ADDRESSES[chainId]?.[nftType];
 };
 
+/**
+ * NFT 소각
+ * @param {Object} provider - Ethers provider
+ * @param {string} nftType - 'native', 'soulbound', 'fractional'
+ * @param {string} tokenId - 토큰 ID
+ * @returns {Object} 트랜잭션 결과
+ */
+export const burnNFT = async (provider, nftType, tokenId) => {
+  try {
+    console.log('🔥 NFT 소각 시작:', { nftType, tokenId });
+
+    const contract = await getContract(provider, nftType);
+
+    // burn 함수 호출
+    const tx = await contract.burn(tokenId);
+    console.log('📤 소각 트랜잭션 전송됨:', tx.hash);
+
+    const receipt = await tx.wait();
+    console.log('✅ NFT 소각 완료!');
+
+    return {
+      success: true,
+      txHash: receipt.hash,
+      tokenId,
+      blockNumber: receipt.blockNumber
+    };
+  } catch (error) {
+    console.error('❌ NFT 소각 실패:', error);
+    
+    // 에러 메시지 파싱
+    let errorMessage = 'NFT 소각에 실패했습니다.';
+    if (error.message.includes('caller is not owner') || error.message.includes('not owner')) {
+      errorMessage = '토큰 소유자만 소각할 수 있습니다.';
+    } else if (error.message.includes('nonexistent token')) {
+      errorMessage = '존재하지 않는 토큰입니다.';
+    } else if (error.code === 'ACTION_REJECTED' || error.code === 4001) {
+      errorMessage = '트랜잭션이 거부되었습니다.';
+    }
+    
+    throw new Error(errorMessage);
+  }
+};
