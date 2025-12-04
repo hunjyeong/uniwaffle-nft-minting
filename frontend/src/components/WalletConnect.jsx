@@ -145,7 +145,7 @@ const WalletConnect = () => {
           <div className="account-info">
             <span className="status-indicator">🟢</span>
             <span className="address">
-              {formatAddress(account)}
+              {account}
             </span>
             <button
               className="copy-button"

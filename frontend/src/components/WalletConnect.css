@@ -1,3 +1,5 @@
+/* WalletConnect.css */
+
 .wallet-connect {
   padding: 20px;
   background: white;
@@ -5,15 +7,15 @@
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
-.connect-section {
+.wallet-connect .connect-section {
   display: flex;
   flex-direction: column;
   gap: 12px;
   position: relative;
 }
 
-.chain-selector-button,
-.chain-display {
+.wallet-connect .chain-selector-button,
+.wallet-connect .chain-display {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -32,13 +34,13 @@
   box-sizing: border-box;
 }
 
-.chain-selector-button:hover,
-.chain-display:hover {
+.wallet-connect .chain-selector-button:hover,
+.wallet-connect .chain-display:hover {
   background: #e9ecef;
   border-color: #dee2e6;
 }
 
-.chain-icon-img {
+.wallet-connect .chain-icon-img {
   width: 24px;
   height: 24px;
   border-radius: 50%;
@@ -46,7 +48,7 @@
   background: #f1f3f5;
 }
 
-.chain-icon-emoji {
+.wallet-connect .chain-icon-emoji {
   font-size: 24px;
   min-width: 24px;
   display: flex;
@@ -54,12 +56,12 @@
   justify-content: center;
 }
 
-.dropdown-arrow {
+.wallet-connect .dropdown-arrow {
   margin-left: auto;
   font-size: 14px;
 }
 
-.chain-dropdown {
+.wallet-connect .chain-dropdown {
   position: absolute;
   top: 100%;
   left: 0;
@@ -76,16 +78,16 @@
   box-sizing: border-box;
 }
 
-.chain-category {
+.wallet-connect .chain-category {
   padding: 8px 0;
   border-bottom: 1px solid #f1f3f5;
 }
 
-.chain-category:last-child {
+.wallet-connect .chain-category:last-child {
   border-bottom: none;
 }
 
-.category-title {
+.wallet-connect .category-title {
   padding: 12px 16px;
   font-size: 13px;
   font-weight: 700;
@@ -94,7 +96,7 @@
   letter-spacing: 0.5px;
 }
 
-.chain-option {
+.wallet-connect .chain-option {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -108,27 +110,27 @@
   font-size: 15px;
 }
 
-.chain-option:hover:not(:disabled) {
+.wallet-connect .chain-option:hover:not(:disabled) {
   background: #f8f9fa;
 }
 
-.chain-option:disabled {
+.wallet-connect .chain-option:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.chain-option.selected {
+.wallet-connect .chain-option.selected {
   background: #e7f5ff;
 }
 
-.chain-name {
+.wallet-connect .chain-name {
   flex: 1;
   font-size: 15px;
   font-weight: 500;
   white-space: nowrap;
 }
 
-.testnet-badge {
+.wallet-connect .testnet-badge {
   font-size: 11px;
   padding: 3px 8px;
   background: #fff3bf;
@@ -138,13 +140,13 @@
   white-space: nowrap;
 }
 
-.check-mark {
+.wallet-connect .check-mark {
   color: #51cf66;
   font-weight: bold;
   font-size: 16px;
 }
 
-.connect-button {
+.wallet-connect .connect-button {
   padding: 14px 24px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
@@ -158,57 +160,58 @@
   box-sizing: border-box;
 }
 
-.connect-button:hover:not(:disabled) {
+.wallet-connect .connect-button:hover:not(:disabled) {
   transform: translateY(-2px);
 }
 
-.connect-button:disabled {
+.wallet-connect .connect-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-.wallet-hint {
+.wallet-connect .wallet-hint {
   text-align: center;
   font-size: 13px;
   color: #868e96;
 }
 
-.wallet-hint p {
+.wallet-connect .wallet-hint p {
   margin: 0;
 }
 
-.connected-info {
+.wallet-connect .connected-info {
   display: flex;
   flex-direction: column;
   gap: 12px;
   position: relative;
 }
 
-.chain-info {
+.wallet-connect .chain-info {
   position: relative;
 }
 
-.account-info {
+.wallet-connect .account-info {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 12px 16px;
   background: #f8f9fa;
   border-radius: 8px;
+  width: 500px;
 }
 
-.status-indicator {
+.wallet-connect .status-indicator {
   font-size: 12px;
 }
 
-.address {
+.wallet-connect .address {
   flex: 1;
   font-family: monospace;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
 }
 
-.copy-button {
+.wallet-connect .copy-button {
   padding: 4px 8px;
   background: none;
   border: none;
@@ -218,11 +221,11 @@
   transition: opacity 0.2s;
 }
 
-.copy-button:hover {
+.wallet-connect .copy-button:hover {
   opacity: 1;
 }
 
-.network-switch-button {
+.wallet-connect .network-switch-button {
   padding: 10px 16px;
   background: #fff3bf;
   color: #f59f00;
@@ -233,11 +236,11 @@
   transition: all 0.2s;
 }
 
-.network-switch-button:hover {
+.wallet-connect .network-switch-button:hover {
   background: #ffe066;
 }
 
-.disconnect-button {
+.wallet-connect .disconnect-button {
   padding: 10px 16px;
   background: white;
   color: #495057;
@@ -248,12 +251,12 @@
   transition: all 0.2s;
 }
 
-.disconnect-button:hover {
+.wallet-connect .disconnect-button:hover {
   background: #f8f9fa;
   border-color: #ced4da;
 }
 
-.error-message {
+.wallet-connect .error-message {
   padding: 12px 16px;
   background: #ffe0e0;
   color: #c92a2a;
