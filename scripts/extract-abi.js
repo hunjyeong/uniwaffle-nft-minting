@@ -1,6 +1,12 @@
 import fs from 'fs';
 
-const contracts = ['NativeNFT', 'SoulboundNFT', 'FractionalNFT'];
+const contracts = [
+  'NativeNFT', 
+  'SoulboundNFT',
+  'DynamicNFT',
+  'FractionalNFT',
+  'ComposableNFT'
+];
 
 contracts.forEach(name => {
   try {

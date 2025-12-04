@@ -158,7 +158,7 @@ const MintForm = () => {
         </div>
 
         <div className="form-group">
-          <label htmlFor="name">NFT Name</label>
+          <label htmlFor="name">NFT 이름</label>
           <input
             id="name"
             type="text"

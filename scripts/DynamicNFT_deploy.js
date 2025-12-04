@@ -4,27 +4,27 @@ const { ethers } = hre;
 async function main() {
     const [deployer] = await ethers.getSigners();
     
-    console.log("Deploying Native NFT with account:", deployer.address);
+    console.log("Deploying Dynamic NFT with account:", deployer.address);
     console.log("Account balance:", ethers.formatEther(await ethers.provider.getBalance(deployer.address)), "ETH");
     
-    const NativeNFT = await ethers.getContractFactory("NativeNFT");
+    const DynamicNFT = await ethers.getContractFactory("DynamicNFT");
     
-    const nft = await NativeNFT.deploy(
-        "My Native NFT",                              // name
-        "MNFT",                                       // symbol
+    const nft = await DynamicNFT.deploy(
+        "My Dynamic NFT",                             // name
+        "DNFT",                                       // symbol
         "https://gateway.pinata.cloud/ipfs/",        // baseURI
-        10000,                                        // maxSupply (0 = unlimited)
-        ethers.parseEther("0")                        // mintPrice (0 ETH = free)
+        10000,                                        // maxSupply
+        ethers.parseEther("0.01")                    // mintPrice
     );
     
     console.log("Deploying... Please wait...");
     await nft.waitForDeployment();
     const address = await nft.getAddress();
     
-    console.log("\nNativeNFT deployed to:", address);
+    console.log("\nDynamicNFT deployed to:", address);
 
     console.log("\n⏳ Waiting for contract to be indexed...");
-    await new Promise(resolve => setTimeout(resolve, 3000)); // 3초 대기
+    await new Promise(resolve => setTimeout(resolve, 3000));
 
     console.log("\nContract Details:");
     console.log("   Name:", await nft.name());
@@ -38,23 +38,23 @@ async function main() {
     
     console.log("\nSave this address to .env:");
     if (chainId === '0xaa36a7') {
-        console.log(`REACT_APP_SEPOLIA_NATIVE_ADDRESS=${address}`);
+        console.log(`REACT_APP_SEPOLIA_DYNAMIC_ADDRESS=${address}`);
     } else if (chainId === '0x1') {
-        console.log(`REACT_APP_MAINNET_NATIVE_ADDRESS=${address}`);
+        console.log(`REACT_APP_MAINNET_DYNAMIC_ADDRESS=${address}`);
     } else if (chainId === '0x89') {
-        console.log(`REACT_APP_POLYGON_NATIVE_ADDRESS=${address}`);
+        console.log(`REACT_APP_POLYGON_DYNAMIC_ADDRESS=${address}`);
     } else if (chainId === '0xa4b1') {
-        console.log(`REACT_APP_ARBITRUM_NATIVE_ADDRESS=${address}`);
+        console.log(`REACT_APP_ARBITRUM_DYNAMIC_ADDRESS=${address}`);
     } else if (chainId === '0xa') {
-        console.log(`REACT_APP_OPTIMISM_NATIVE_ADDRESS=${address}`);
+        console.log(`REACT_APP_OPTIMISM_DYNAMIC_ADDRESS=${address}`);
     } else if (chainId === '0x2105') {
-        console.log(`REACT_APP_BASE_NATIVE_ADDRESS=${address}`);
+        console.log(`REACT_APP_BASE_DYNAMIC_ADDRESS=${address}`);
     } else if (chainId === '0x14a34') {
-        console.log(`REACT_APP_BASE_SEPOLIA_NATIVE_ADDRESS=${address}`);
+        console.log(`REACT_APP_BASE_SEPOLIA_DYNAMIC_ADDRESS=${address}`);
     }
     
     console.log("\n⏳ Waiting for block confirmations...");
-    await nft.deploymentTransaction().wait(5); // 5개 블록 대기
+    await nft.deploymentTransaction().wait(5);
     
     console.log("\nDeployment complete!");
     console.log("\nVerify on Etherscan:");

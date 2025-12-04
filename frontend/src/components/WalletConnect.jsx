@@ -56,38 +56,40 @@ const WalletConnect = () => {
 
       {!isConnected ? (
         <div className="connect-section">
-          <button 
-            className="chain-selector-button"
-            onClick={() => setShowChainSelector(!showChainSelector)}
-          >
-            <span>{currentChain ? currentChain.shortName : '블록체인 선택'}</span>
-            <span className="dropdown-arrow">▼</span>
-          </button>
+          <div className="chain-selector-wrapper">
+            <button 
+              className="chain-selector-button"
+              onClick={() => setShowChainSelector(!showChainSelector)}
+            >
+              <span>{currentChain ? currentChain.shortName : '블록체인 선택'}</span>
+              <span className="dropdown-arrow">▼</span>
+            </button>
 
-          {showChainSelector && (
-            <div className="chain-dropdown">
-              {Object.entries(chainCategories).map(([category, chains]) => (
-                chains.length > 0 && (
-                  <div key={category} className="chain-category">
-                    <div className="category-title">{category}</div>
-                    {chains.map(chain => (
-                      <button
-                        key={chain.id}
-                        className={`chain-option ${currentChain?.id === chain.id ? 'selected' : ''}`}
-                        onClick={() => handleChainSelect(chain)}
-                      >
-                        {renderChainIcon(chain.icon)}
-                        <span className="chain-name">{chain.shortName}</span>
-                        {chain.isTestnet && (
-                          <span className="testnet-badge">Testnet</span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )
-              ))}
-            </div>
-          )}
+            {showChainSelector && (
+              <div className="chain-dropdown">
+                {Object.entries(chainCategories).map(([category, chains]) => (
+                  chains.length > 0 && (
+                    <div key={category} className="chain-category">
+                      <div className="category-title">{category}</div>
+                      {chains.map(chain => (
+                        <button
+                          key={chain.id}
+                          className={`chain-option ${currentChain?.id === chain.id ? 'selected' : ''}`}
+                          onClick={() => handleChainSelect(chain)}
+                        >
+                          {renderChainIcon(chain.icon)}
+                          <span className="chain-name">{chain.shortName}</span>
+                          {chain.isTestnet && (
+                            <span className="testnet-badge">Testnet</span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )
+                ))}
+              </div>
+            )}
+          </div>
 
           <button 
             className="connect-button"

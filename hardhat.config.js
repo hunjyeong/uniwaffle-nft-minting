@@ -89,6 +89,18 @@ export default {
           }
         : [],
       chainId: 8453
+    },
+    baseSepolia : {
+      url: process.env.BASE_SEPOLIA_RPC_URL || 'https://sepolia.base.org',
+      accounts: process.env.REACT_APP_MNEMONIC 
+        ? {
+            mnemonic: process.env.REACT_APP_MNEMONIC,
+            path: "m/44'/60'/0'/0",
+            initialIndex: 0,
+            count: 10
+          }
+        : [],
+      chainId: 84532
     }
   },
   etherscan: {

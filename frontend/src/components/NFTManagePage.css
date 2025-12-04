@@ -1,254 +1,346 @@
 /* NFTManagePage.css */
 
 .manage-page {
-    max-width: 800px;
-    margin: 40px auto;
-    padding: 0 20px;
-    min-height: calc(100vh - 80px);
-  }
-  
-  .manage-page .manage-header {
-    margin-bottom: 30px;
-  }
-  
-  .manage-page .manage-header h1 {
-    margin: 0;
-    font-size: 28px;
-    color: #212529;
-  }
-  
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 0 20px;
+  min-height: calc(100vh - 80px);
+}
+
+.manage-page .manage-header {
+  margin-bottom: 30px;
+}
+
+.manage-page .manage-header h1 {
+  margin: 0;
+  font-size: 28px;
+  color: #212529;
+}
+
+.manage-page .nft-preview-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.manage-page .preview-image {
+  width: 180px;
+  height: 180px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f8f9fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.manage-page .preview-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.manage-page .preview-info {
+  flex: 1;
+}
+
+.manage-page .preview-info h2 {
+  margin: 0 0 8px 0;
+  font-size: 20px;
+  color: #212529;
+}
+
+.manage-page .token-id {
+  margin: 0 0 12px 0;
+  font-size: 12px;
+  color: #868e96;
+  font-family: monospace;
+}
+
+/* NFT 타입 및 체인 박스 스타일 */
+.manage-page .nft-badges {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.manage-page .nft-type {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Native NFT 스타일 */
+.manage-page .nft-type.native {
+  background-color: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #93c5fd;
+}
+
+/* Soulbound 스타일 */
+.manage-page .nft-type.soulbound {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+/* Fractional 스타일 */
+.manage-page .nft-type.fractional {
+  background-color: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+/* 체인 뱃지 스타일 */
+.manage-page .nft-chain {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  background-color: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  display: inline-block;
+}
+
+.manage-page .warning-banner {
+  background: #ffe0e0;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+  color: #c92a2a;
+  text-align: center;
+}
+
+.manage-page .tabs-container {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.manage-page .tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 2px solid #f1f3f5;
+  margin-bottom: 24px;
+}
+
+.manage-page .tab {
+  flex: 1;
+  padding: 12px 16px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 14px;
+  font-weight: 600;
+  color: #adb5bd;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.manage-page .tab:hover {
+  color: #495057;
+}
+
+.manage-page .tab.active {
+  color: #4263eb;
+  border-bottom-color: #4263eb;
+}
+
+.manage-page .tab-content {
+  min-height: 200px;
+}
+
+.manage-page .action-form {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.manage-page .form-group {
+  margin-bottom: 20px;
+}
+
+.manage-page .form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #212529;
+  font-size: 14px;
+}
+
+.manage-page .form-group input {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: monospace;
+  transition: all 0.2s;
+  box-sizing: border-box;
+}
+
+.manage-page .form-group input:focus {
+  outline: none;
+  border-color: #4263eb;
+}
+
+.manage-page .form-group input:disabled {
+  background: #f8f9fa;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.manage-page .form-group small {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #868e96;
+}
+
+.manage-page .burn-section {
+  max-width: 500px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.manage-page .warning-box {
+  padding: 16px;
+  background: #ffe0e0;
+  border-radius: 8px;
+  color: #c92a2a;
+}
+
+.manage-page .warning-box p {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.manage-page .warning-box p:last-child {
+  margin-bottom: 0;
+}
+
+.manage-page .action-button {
+  width: 100%;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.manage-page .action-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.manage-page .action-button.transfer {
+  background: #4263eb;
+  color: white;
+}
+
+.manage-page .action-button.transfer:hover:not(:disabled) {
+  background: #364fc7;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(66, 99, 235, 0.3);
+}
+
+.manage-page .action-button.burn {
+  background: #fa5252;
+  color: white;
+}
+
+.manage-page .action-button.burn:hover:not(:disabled) {
+  background: #e03131;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(250, 82, 82, 0.3);
+}
+
+.manage-page .success-message {
+  padding: 16px;
+  background: #d3f9d8;
+  border-radius: 8px;
+  color: #2b8a3e;
+  margin-top: 16px;
+}
+
+.manage-page .success-message p {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+}
+
+.manage-page .success-message a {
+  color: #2b8a3e;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.manage-page .success-message a:hover {
+  text-decoration: underline;
+}
+
+/* 로딩 화면 스타일 */
+.manage-page .loading {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.manage-page .loading h2 {
+  margin: 0 0 12px 0;
+  font-size: 20px;
+  color: #212529;
+}
+
+.manage-page .loading p {
+  margin: 0 0 20px 0;
+  color: #868e96;
+}
+
+.manage-page .loading button {
+  padding: 10px 20px;
+  background: #4263eb;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.manage-page .loading button:hover {
+  background: #364fc7;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 640px) {
   .manage-page .nft-preview-card {
-    background: white;
-    border-radius: 12px;
-    padding: 24px;
-    margin-bottom: 24px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    display: flex;
-    gap: 24px;
-    align-items: flex-start;
+    flex-direction: column;
   }
   
   .manage-page .preview-image {
-    width: 180px;
-    height: 180px;
-    border-radius: 8px;
-    overflow: hidden;
-    background: #f8f9fa;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-  
-  .manage-page .preview-image img {
     width: 100%;
-    height: 100%;
-    object-fit: cover;
+    height: 200px;
   }
   
-  .manage-page .preview-info {
-    flex: 1;
-  }
-  
-  .manage-page .preview-info h2 {
-    margin: 0 0 8px 0;
-    font-size: 20px;
-    color: #212529;
-  }
-  
-  .manage-page .token-id {
-    margin: 0 0 12px 0;
-    font-size: 12px;
-    color: #868e96;
-    font-family: monospace;
-  }
-  
-  .manage-page .preview-info .nft-type {
-    margin-bottom: 8px;
-    display: inline-block;
-  }
-  
-  .manage-page .preview-info .nft-chain {
-    margin-bottom: 0;
-  }
-  
-  .manage-page .warning-banner {
-    background: #ffe0e0;
-    border-radius: 8px;
-    padding: 16px;
-    margin-bottom: 20px;
-    color: #c92a2a;
-    text-align: center;
-  }
-  
-  .manage-page .tabs-container {
-    background: white;
-    border-radius: 12px;
-    padding: 24px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  }
-  
-  .manage-page .tabs {
-    display: flex;
-    gap: 8px;
-    border-bottom: 2px solid #f1f3f5;
-    margin-bottom: 24px;
-  }
-  
-  .manage-page .tab {
-    flex: 1;
-    padding: 12px 16px;
-    background: none;
-    border: none;
-    border-bottom: 2px solid transparent;
-    font-size: 14px;
-    font-weight: 600;
-    color: #adb5bd;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  
-  .manage-page .tab:hover {
-    color: #495057;
-  }
-  
-  .manage-page .tab.active {
-    color: #4263eb;
-    border-bottom-color: #4263eb;
-  }
-  
-  .manage-page .tab-content {
-    min-height: 200px;
-  }
-  
-  .manage-page .action-form {
-    max-width: 500px;
-    margin: 0 auto;
-  }
-  
-  .manage-page .form-group {
-    margin-bottom: 20px;
-  }
-  
-  .manage-page .form-group label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 600;
-    color: #212529;
-    font-size: 14px;
-  }
-  
-  .manage-page .form-group input {
-    width: 100%;
-    padding: 12px;
-    border: 2px solid #dee2e6;
-    border-radius: 8px;
-    font-size: 14px;
-    font-family: monospace;
-    transition: all 0.2s;
-    box-sizing: border-box;
-  }
-  
-  .manage-page .form-group input:focus {
-    outline: none;
-    border-color: #4263eb;
-  }
-  
-  .manage-page .form-group input:disabled {
-    background: #f8f9fa;
-    cursor: not-allowed;
-    opacity: 0.6;
-  }
-  
-  .manage-page .form-group small {
-    display: block;
-    margin-top: 6px;
-    font-size: 12px;
-    color: #868e96;
-  }
-  
-  .manage-page .burn-section {
-    max-width: 500px;
-    margin: 0 auto;
-    display: flex;
+  .manage-page .nft-badges {
     flex-direction: column;
-    gap: 16px;
+    align-items: flex-start;
   }
-  
-  .manage-page .warning-box {
-    padding: 16px;
-    background: #ffe0e0;
-    border-radius: 8px;
-    color: #c92a2a;
-  }
-  
-  .manage-page .warning-box p {
-    margin: 0 0 8px 0;
-    font-size: 14px;
-    line-height: 1.5;
-  }
-  
-  .manage-page .warning-box p:last-child {
-    margin-bottom: 0;
-  }
-  
-  .manage-page .action-button {
-    width: 100%;
-    padding: 12px 20px;
-    border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  
-  .manage-page .action-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-  
-  .manage-page .action-button.transfer {
-    background: #4263eb;
-    color: white;
-  }
-  
-  .manage-page .action-button.transfer:hover:not(:disabled) {
-    background: #364fc7;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(66, 99, 235, 0.3);
-  }
-  
-  .manage-page .action-button.burn {
-    background: #fa5252;
-    color: white;
-  }
-  
-  .manage-page .action-button.burn:hover:not(:disabled) {
-    background: #e03131;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(250, 82, 82, 0.3);
-  }
-  
-  .manage-page .success-message {
-    padding: 16px;
-    background: #d3f9d8;
-    border-radius: 8px;
-    color: #2b8a3e;
-    margin-top: 16px;
-  }
-  
-  .manage-page .success-message p {
-    margin: 0 0 8px 0;
-    font-size: 14px;
-  }
-  
-  .manage-page .success-message a {
-    color: #2b8a3e;
-    text-decoration: none;
-    font-weight: 600;
-  }
-  
-  .manage-page .success-message a:hover {
-    text-decoration: underline;
-  }
+}

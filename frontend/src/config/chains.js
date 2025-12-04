@@ -95,7 +95,7 @@ export const SUPPORTED_CHAINS = {
     chainId: '0x2105',
     name: 'Base',
     shortName: 'Base',
-    icon: 'https://s2.coinmarketcap.com/static/img/coins/64x64/28871.png',
+    icon: 'https://cdn.brandfetch.io/id6XsSOVVS/w/400/h/400/theme/dark/icon.jpeg?c=1dxbfHSJFAPEGdCLU4o5B',
     type: CHAIN_TYPES.EVM,
     nativeCurrency: {
       name: 'Ether',

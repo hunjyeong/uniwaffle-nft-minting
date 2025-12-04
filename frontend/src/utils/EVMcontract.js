@@ -42,6 +42,12 @@ const CONTRACT_ADDRESSES = {
     native: process.env.REACT_APP_BASE_NATIVE_ADDRESS || '',
     soulbound: process.env.REACT_APP_BASE_SOULBOUND_ADDRESS || '',
     fractional: process.env.REACT_APP_BASE_FRACTIONAL_ADDRESS || ''
+  },
+  // Base
+  '0x14a34': {
+    native: process.env.REACT_APP_BASE_SEPOLIA_NATIVE_ADDRESS || '',
+    soulbound: process.env.REACT_APP_BASE_SEPOLIA_SOULBOUND_ADDRESS || '',
+    fractional: process.env.REACT_APP_BASE_SEPOLIA_FRACTIONAL_ADDRESS || ''
   }
 };
 
@@ -194,31 +200,105 @@ export const mintEvmNFT = async (provider, nftType, recipientAddress, tokenURI) 
 /**
  * NFT 전송 (SBT는 불가)
  */
-export const transferNFT = async (provider, nftType, fromAddress, toAddress, tokenId) => {
+export const transferNFT = async (provider, nftType, from, to, tokenId) => {
+  console.log('📦 NFT 전송 시작:', { nftType, from, to, tokenId });
+  
   try {
-    if (nftType === 'soulbound') {
-      throw new Error('Soulbound Token은 전송할 수 없습니다.');
+    if (!provider) {
+      throw new Error('Provider가 초기화되지 않았습니다.');
+    }
+
+    // 자기 자신에게 전송 방지
+    if (from.toLowerCase() === to.toLowerCase()) {
+      throw new Error('자기 자신에게는 전송할 수 없습니다.');
     }
 
     const contract = await getContract(provider, nftType);
+    const signer = await provider.getSigner();
+    const userAddress = await signer.getAddress();
     
-    console.log('전송 시작:', { from: fromAddress, to: toAddress, tokenId });
-    const tx = await contract.transferFrom(fromAddress, toAddress, tokenId);
+    // console.log('=== 디버깅 정보 ===');
+    // console.log('👤 현재 연결된 주소:', userAddress);
+    // console.log('📄 컨트랙트 주소:', contract.target || contract.address);
+    // console.log('📤 From:', from);
+    // console.log('📥 To:', to);
+    // console.log('🔢 Token ID:', tokenId);
     
-    console.log('트랜잭션 대기 중...', tx.hash);
-    const receipt = await tx.wait();
+    // 소유권 확인 (선택적)
+    try {
+      const owner = await contract.ownerOf(tokenId);
+      console.log('🏷️ Token #' + tokenId + ' 소유자:', owner);
+      console.log('✅ 소유자 일치 여부:', owner.toLowerCase() === userAddress.toLowerCase());
+      
+      if (owner.toLowerCase() !== userAddress.toLowerCase()) {
+        throw new Error(`이 NFT의 소유자가 아닙니다.\n소유자: ${owner}\n현재 주소: ${userAddress}`);
+      }
+    } catch (error) {
+      if (error.message.includes('소유자가 아닙니다')) {
+        throw error;
+      }
+      console.warn('⚠️ ownerOf 호출 실패 (계속 진행):', error.message);
+    }
     
-    return {
-      success: true,
-      txHash: receipt.hash,
-      blockNumber: receipt.blockNumber
-    };
+    // 가스 추정
+    try {
+      console.log('⛽ 가스 추정 시도...');
+      const gasEstimate = await contract.transferFrom.estimateGas(from, to, tokenId);
+      console.log('⛽ 예상 가스:', gasEstimate.toString());
+    } catch (gasError) {
+      console.error('❌ 가스 추정 실패:', gasError);
+      throw new Error('전송 권한이 없거나 NFT가 존재하지 않습니다.');
+    }
+    
+    // 전송 트랜잭션 전송
+    console.log('📤 전송 트랜잭션 전송 중...');
+    const tx = await contract.transferFrom(from, to, tokenId);
+    console.log('📝 트랜잭션 해시:', tx.hash);
+    
+    // 트랜잭션 확인 대기
+    console.log('⏳ 트랜잭션 확인 대기 중...');
+    try {
+      const receipt = await tx.wait();
+      console.log('✅ 전송 완료! Receipt:', receipt);
+      
+      return {
+        success: true,
+        txHash: tx.hash,
+        receipt: receipt
+      };
+    } catch (waitError) {
+      console.warn('⚠️ Receipt 대기 중 에러 (트랜잭션은 전송됨):', waitError);
+      
+      return {
+        success: true,
+        txHash: tx.hash,
+        receipt: null
+      };
+    }
+    
   } catch (error) {
-    console.error('전송 실패:', error);
-    throw error;
+    console.error('❌ NFT 전송 실패:', error);
+    
+    // 사용자 친화적 에러 메시지
+    if (error.message.includes('자기 자신에게는 전송할 수 없습니다')) {
+      throw error;
+    } else if (error.message.includes('소유자가 아닙니다')) {
+      throw error;
+    } else if (error.message.includes('전송 권한이 없거나')) {
+      throw error;
+    } else if (error.code === 'ACTION_REJECTED') {
+      throw new Error('사용자가 트랜잭션을 거부했습니다.');
+    } else if (error.message.includes('insufficient funds')) {
+      throw new Error('가스비가 부족합니다.');
+    } else if (error.code === 'CALL_EXCEPTION') {
+      throw new Error('컨트랙트 실행 실패: NFT가 존재하지 않거나 권한이 없습니다.');
+    } else if (error.reason) {
+      throw new Error(`전송 실패: ${error.reason}`);
+    }
+    
+    throw new Error('NFT 전송에 실패했습니다.');
   }
 };
-
 /**
  * NFT 소유자 확인
  */
@@ -305,37 +385,111 @@ export const getContractAddress = (chainId, nftType) => {
  * @returns {Object} 트랜잭션 결과
  */
 export const burnNFT = async (provider, nftType, tokenId) => {
+  console.log('🔥 NFT 소각 시작:', { nftType, tokenId });
+  
   try {
-    console.log('🔥 NFT 소각 시작:', { nftType, tokenId });
+    if (!provider) {
+      throw new Error('Provider가 초기화되지 않았습니다.');
+    }
 
     const contract = await getContract(provider, nftType);
-
-    // burn 함수 호출
-    const tx = await contract.burn(tokenId);
-    console.log('📤 소각 트랜잭션 전송됨:', tx.hash);
-
-    const receipt = await tx.wait();
-    console.log('✅ NFT 소각 완료!');
-
-    return {
-      success: true,
-      txHash: receipt.hash,
-      tokenId,
-      blockNumber: receipt.blockNumber
-    };
-  } catch (error) {
-    console.error('❌ NFT 소각 실패:', error);
+    const signer = await provider.getSigner();
+    const userAddress = await signer.getAddress();
     
-    // 에러 메시지 파싱
-    let errorMessage = 'NFT 소각에 실패했습니다.';
-    if (error.message.includes('caller is not owner') || error.message.includes('not owner')) {
-      errorMessage = '토큰 소유자만 소각할 수 있습니다.';
-    } else if (error.message.includes('nonexistent token')) {
-      errorMessage = '존재하지 않는 토큰입니다.';
-    } else if (error.code === 'ACTION_REJECTED' || error.code === 4001) {
-      errorMessage = '트랜잭션이 거부되었습니다.';
+    // console.log('=== 디버깅 정보 ===');
+    // console.log('👤 현재 연결된 주소:', userAddress);
+    // console.log('📄 컨트랙트 주소:', contract.target || contract.address);
+    // console.log('🔢 Token ID:', tokenId);
+    
+    // 소유권 확인
+    try {
+      const owner = await contract.ownerOf(tokenId);
+      console.log('🏷️ Token #' + tokenId + ' 소유자:', owner);
+      console.log('✅ 소유자 일치 여부:', owner.toLowerCase() === userAddress.toLowerCase());
+      
+      if (owner.toLowerCase() !== userAddress.toLowerCase()) {
+        throw new Error(`이 NFT의 소유자가 아닙니다.\n소유자: ${owner}\n현재 주소: ${userAddress}`);
+      }
+    } catch (error) {
+      if (error.message.includes('소유자가 아닙니다')) {
+        throw error;
+      }
+      console.error('ownerOf 호출 실패:', error);
+      throw new Error('NFT가 존재하지 않거나 소유권을 확인할 수 없습니다.');
     }
     
-    throw new Error(errorMessage);
+    // burn 함수 확인
+    console.log('🔍 burn 함수 존재:', typeof contract.burn === 'function');
+    
+    if (!contract.burn) {
+      throw new Error('이 컨트랙트는 burn 기능을 지원하지 않습니다.');
+    }
+    
+    // 가스 추정
+    try {
+      console.log('⛽ 가스 추정 시도...');
+      const gasEstimate = await contract.burn.estimateGas(tokenId);
+      console.log('⛽ 예상 가스:', gasEstimate.toString());
+    } catch (gasError) {
+      console.error('❌ 가스 추정 실패:', gasError);
+      throw new Error('트랜잭션이 실패할 것으로 예상됩니다. 컨트랙트 권한을 확인해주세요.');
+    }
+    
+    // 소각 트랜잭션 전송
+    console.log('📤 소각 트랜잭션 전송 중...');
+    const tx = await contract.burn(tokenId);
+    console.log('📝 트랜잭션 해시:', tx.hash);
+    
+    // 트랜잭션 확인 대기 (에러 처리 강화)
+    console.log('⏳ 트랜잭션 확인 대기 중...');
+    try {
+      const receipt = await tx.wait();
+      console.log('✅ 소각 완료! Receipt:', receipt);
+      
+      return {
+        success: true,
+        txHash: tx.hash,
+        receipt: receipt
+      };
+    } catch (waitError) {
+      // wait() 실패해도 트랜잭션은 이미 전송됨
+      console.warn('⚠️ Receipt 대기 중 에러 발생 (트랜잭션은 전송되었습니다):', waitError);
+      
+      return {
+        success: true,
+        txHash: tx.hash,
+        receipt: null
+      };
+    }
+    
+  } catch (error) {
+    console.error('❌ NFT 소각 실패:', error);
+    console.error('에러 상세:', {
+      message: error.message,
+      code: error.code,
+      reason: error.reason,
+      data: error.data
+    });
+    
+    // 사용자 친화적 에러 메시지
+    if (error.message.includes('소유자가 아닙니다')) {
+      throw error;
+    } else if (error.message.includes('존재하지 않거나')) {
+      throw error;
+    } else if (error.message.includes('burn 기능을 지원하지 않습니다')) {
+      throw error;
+    } else if (error.message.includes('실패할 것으로 예상')) {
+      throw error;
+    } else if (error.code === 'ACTION_REJECTED') {
+      throw new Error('사용자가 트랜잭션을 거부했습니다.');
+    } else if (error.message.includes('insufficient funds')) {
+      throw new Error('가스비가 부족합니다.');
+    } else if (error.code === 'CALL_EXCEPTION') {
+      throw new Error('컨트랙트 실행 실패: 권한이 없거나 함수 호출이 거부되었습니다.');
+    } else if (error.reason) {
+      throw new Error(`소각 실패: ${error.reason}`);
+    }
+    
+    throw new Error('NFT 소각에 실패했습니다.');
   }
 };

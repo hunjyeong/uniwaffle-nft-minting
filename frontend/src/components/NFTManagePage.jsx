@@ -1,17 +1,78 @@
 import React, { useState, useEffect } from 'react';
-import { useWeb3 } from '../hooks/useWeb3';
+import { ethers } from 'ethers';
 import { transferNFT, burnNFT } from '../utils/EVMcontract';
 import './NFTDisplay.css';
 import './NFTManagePage.css';
 
 const NFTManagePage = () => {
-  const { provider, currentChain } = useWeb3();
+  // useWeb3 대신 직접 state 관리
+  const [provider, setProvider] = useState(null);
+  const [currentChain, setCurrentChain] = useState(null);
   const [nft, setNft] = useState(null);
   const [activeTab, setActiveTab] = useState('transfer');
   const [recipientAddress, setRecipientAddress] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState(null);
   const [txHash, setTxHash] = useState(null);
+  const [isProviderReady, setIsProviderReady] = useState(false);
+
+  // 새 창에서 독립적으로 Provider 초기화 (Trust Wallet만 사용)
+  useEffect(() => {
+    const initProvider = async () => {
+      try {
+        console.log('🔌 Provider 초기화 시작...');
+        
+        // Trust Wallet만 확인
+        if (!window.trustwallet && !window.ethereum) {
+          throw new Error('Trust Wallet이 설치되어 있지 않습니다.');
+        }
+        
+        const selectedProvider = window.trustwallet || window.ethereum;
+        console.log('✅ Trust Wallet 감지됨');
+        
+        const ethersProvider = new ethers.BrowserProvider(selectedProvider);
+        setProvider(ethersProvider);
+        
+        // 체인 정보 가져오기
+        const network = await ethersProvider.getNetwork();
+        const chainId = Number(network.chainId);
+        
+        console.log('📡 네트워크 정보:', { chainId, name: network.name });
+        
+        // 체인 정보 설정
+        let chainInfo;
+        if (chainId === 1) {
+          chainInfo = {
+            chainId: 1,
+            name: 'Ethereum Mainnet',
+            explorer: 'https://etherscan.io'
+          };
+        } else if (chainId === 11155111) {
+          chainInfo = {
+            chainId: 11155111,
+            name: 'Sepolia Testnet',
+            explorer: 'https://sepolia.etherscan.io'
+          };
+        } else {
+          chainInfo = {
+            chainId: chainId,
+            name: network.name,
+            explorer: `https://${network.name}.etherscan.io`
+          };
+        }
+        
+        setCurrentChain(chainInfo);
+        setIsProviderReady(true);
+        
+        console.log('✅ Provider 초기화 완료:', chainInfo);
+      } catch (err) {
+        console.error('❌ Provider 초기화 실패:', err);
+        setError('지갑을 연결할 수 없습니다. Trust Wallet을 설치하고 다시 시도해주세요.');
+      }
+    };
+    
+    initProvider();
+  }, []);
 
   useEffect(() => {
     // URL 파라미터에서 NFT 데이터 가져오기
@@ -19,12 +80,18 @@ const NFTManagePage = () => {
     const nftData = params.get('nft');
     
     if (nftData) {
-      const parsedNft = JSON.parse(decodeURIComponent(nftData));
-      setNft(parsedNft);
-      
-      // Soulbound이면 소각 탭으로 시작
-      if (parsedNft.type === 'soulbound') {
-        setActiveTab('burn');
+      try {
+        const parsedNft = JSON.parse(decodeURIComponent(nftData));
+        setNft(parsedNft);
+        console.log('📦 NFT 데이터 로드:', parsedNft);
+        
+        // Soulbound이면 소각 탭으로 시작
+        if (parsedNft.type === 'soulbound') {
+          setActiveTab('burn');
+        }
+      } catch (err) {
+        console.error('NFT 데이터 파싱 실패:', err);
+        setError('NFT 정보를 불러올 수 없습니다.');
       }
     }
   }, []);
@@ -46,6 +113,12 @@ const NFTManagePage = () => {
 
   const handleTransfer = async (e) => {
     e.preventDefault();
+    
+    // Provider 확인 추가
+    if (!provider) {
+      setError('지갑이 연결되지 않았습니다. 페이지를 새로고침해주세요.');
+      return;
+    }
     
     if (!recipientAddress) {
       setError('받는 주소를 입력해주세요.');
@@ -90,6 +163,12 @@ const NFTManagePage = () => {
   };
 
   const handleBurn = async () => {
+    // Provider 확인 추가
+    if (!provider) {
+      setError('지갑이 연결되지 않았습니다. 페이지를 새로고침해주세요.');
+      return;
+    }
+
     if (!window.confirm('정말로 이 NFT를 소각하시겠습니까?\n이 작업은 되돌릴 수 없습니다.')) {
       return;
     }
@@ -110,7 +189,10 @@ const NFTManagePage = () => {
 
     } catch (err) {
       console.error('소각 실패:', err);
-      setError(err.message || '소각에 실패했습니다.');
+      
+      // 사용자 친화적인 에러 메시지
+      let errorMessage = err.message || '소각에 실패했습니다.';
+      setError(errorMessage);
     } finally {
       setIsProcessing(false);
     }
@@ -120,6 +202,21 @@ const NFTManagePage = () => {
     return (
       <div className="manage-page">
         <div className="loading">NFT 정보를 불러오는 중...</div>
+      </div>
+    );
+  }
+
+  if (!isProviderReady) {
+    return (
+      <div className="manage-page">
+        <div className="loading">
+          <h2>지갑 연결 중...</h2>
+          <p>잠시만 기다려주세요.</p>
+          {error && <p style={{ color: 'red' }}>{error}</p>}
+          <button onClick={() => window.location.reload()}>
+            다시 시도
+          </button>
+        </div>
       </div>
     );
   }
@@ -143,13 +240,15 @@ const NFTManagePage = () => {
         <div className="preview-info">
           <h2>{nft.metadata?.name || `Token #${nft.tokenId}`}</h2>
           <p className="token-id">Token ID: #{nft.tokenId}</p>
-          <span className={`nft-type ${nft.type}`}>
-            {nft.type === 'soulbound' && '🔒 Soulbound'}
-            {nft.type === 'native' && '🔄 Native NFT'}
-            {nft.type === 'fractional' && '💎 Fractional'}
-          </span>
-          <div className="nft-chain">
-            <span>{nft.chain}</span>
+          <div className="nft-badges">
+            <span className={`nft-type ${nft.type}`}>
+              {nft.type === 'soulbound' && '🔒 Soulbound'}
+              {nft.type === 'native' && '🔄 Native NFT'}
+              {nft.type === 'fractional' && '💎 Fractional'}
+            </span>
+            <span className="nft-chain">
+              {nft.chain}
+            </span>
           </div>
         </div>
       </div>

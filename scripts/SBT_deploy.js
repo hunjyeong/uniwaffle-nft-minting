@@ -20,6 +20,10 @@ async function main() {
     const sbtAddress = await sbt.getAddress();
     
     console.log("\n✅ Soulbound Token deployed to:", sbtAddress);
+
+    console.log("\n⏳ Waiting for contract to be indexed...");
+    await new Promise(resolve => setTimeout(resolve, 3000)); // 3초 대기
+    
     console.log("\nContract Details:");
     console.log("   Name:", await sbt.name());
     console.log("   Symbol:", await sbt.symbol());
