@@ -183,6 +183,16 @@
   color: #1864ab;
 }
 
+.nft-display .nft-type.dynamic {
+  background: #f3e5f5;
+  color: #6a1b9a;
+}
+
+.nft-display .nft-type.composable {
+  background: #fff3e0;
+  color: #e65100;
+}
+
 .nft-display .nft-token-id {
   font-family: monospace;
   font-size: 12px;

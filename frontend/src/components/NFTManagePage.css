@@ -63,7 +63,6 @@
   font-family: monospace;
 }
 
-/* NFT 타입 및 체인 박스 스타일 */
 .manage-page .nft-badges {
   display: flex;
   gap: 8px;
@@ -81,28 +80,36 @@
   gap: 4px;
 }
 
-/* Native NFT 스타일 */
 .manage-page .nft-type.native {
   background-color: #dbeafe;
   color: #1e40af;
   border: 1px solid #93c5fd;
 }
 
-/* Soulbound 스타일 */
 .manage-page .nft-type.soulbound {
   background-color: #fee2e2;
   color: #991b1b;
   border: 1px solid #fca5a5;
 }
 
-/* Fractional 스타일 */
 .manage-page .nft-type.fractional {
   background-color: #fef3c7;
   color: #92400e;
   border: 1px solid #fcd34d;
 }
 
-/* 체인 뱃지 스타일 */
+.manage-page .nft-type.dynamic {
+  background-color: #f3e5f5;
+  color: #6a1b9a;
+  border: 1px solid #ce93d8;
+}
+
+.manage-page .nft-type.composable {
+  background-color: #fff3e0;
+  color: #e65100;
+  border: 1px solid #ffb74d;
+}
+
 .manage-page .nft-chain {
   padding: 6px 12px;
   border-radius: 6px;
@@ -114,12 +121,31 @@
   display: inline-block;
 }
 
+.manage-page .nft-fractionalized {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  background-color: #fff3e0;
+  color: #e65100;
+  border: 1px solid #ffb74d;
+}
+
 .manage-page .warning-banner {
   background: #ffe0e0;
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 20px;
   color: #c92a2a;
+  text-align: center;
+}
+
+.manage-page .info-banner {
+  background: #e3f2fd;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+  color: #1565c0;
   text-align: center;
 }
 
@@ -234,6 +260,16 @@
   margin-bottom: 0;
 }
 
+.manage-page .price-info-box {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  text-align: center;
+  color: #2e7d32;
+  font-size: 16px;
+}
+
 .manage-page .action-button {
   width: 100%;
   padding: 12px 20px;
@@ -272,6 +308,17 @@
   box-shadow: 0 2px 8px rgba(250, 82, 82, 0.3);
 }
 
+.manage-page .action-button.fractionalize {
+  background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+  color: white;
+}
+
+.manage-page .action-button.fractionalize:hover:not(:disabled) {
+  background: linear-gradient(135deg, #f57c00 0%, #e65100 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
+}
+
 .manage-page .success-message {
   padding: 16px;
   background: #d3f9d8;
@@ -295,7 +342,6 @@
   text-decoration: underline;
 }
 
-/* 로딩 화면 스타일 */
 .manage-page .loading {
   text-align: center;
   padding: 60px 20px;
@@ -328,7 +374,6 @@
   background: #364fc7;
 }
 
-/* 반응형 디자인 */
 @media (max-width: 640px) {
   .manage-page .nft-preview-card {
     flex-direction: column;

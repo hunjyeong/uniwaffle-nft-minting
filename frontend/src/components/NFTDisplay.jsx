@@ -78,62 +78,31 @@ const NFTDisplay = () => {
   };
 
   // EVM 체인의 NFT 로드
-  const loadEvmNFTs = async () => {
+  const loadEvmNFTs = useCallback(async () => {
     const allNFTs = [];
-
-    try {
-      console.log('🔍 Soulbound NFT 조회 중...');
-      const soulboundNFTs = await getEvmNFTs(provider, account, 'soulbound');
-      console.log('✅ Soulbound NFTs:', soulboundNFTs);
-      
-      for (let nft of soulboundNFTs) {
-        const metadata = await fetchMetadata(nft.tokenURI);
-        allNFTs.push({
-          ...nft,
-          metadata,
-          chain: currentChain.name
-        });
+    const nftTypes = ['native', 'soulbound', 'fractional', 'dynamic', 'composable'];
+  
+    for (const type of nftTypes) {
+      try {
+        console.log(`🔍 ${type} NFT 조회 중...`);
+        const nftsOfType = await getEvmNFTs(provider, account, type);
+        console.log(`✅ ${type} NFTs:`, nftsOfType);
+        
+        for (let nft of nftsOfType) {
+          const metadata = await fetchMetadata(nft.tokenURI);
+          allNFTs.push({
+            ...nft,
+            metadata,
+            chain: currentChain.name
+          });
+        }
+      } catch (err) {
+        console.log(`⚠️ ${type} NFT 스킵:`, err.message);
       }
-    } catch (err) {
-      console.error('❌ Soulbound Token 조회 실패:', err);
     }
-
-    try {
-      console.log('🔍 Native NFT 조회 중...');
-      const nativeNFTs = await getEvmNFTs(provider, account, 'native');
-      console.log('✅ Native NFTs:', nativeNFTs);
-      
-      for (let nft of nativeNFTs) {
-        const metadata = await fetchMetadata(nft.tokenURI);
-        allNFTs.push({
-          ...nft,
-          metadata,
-          chain: currentChain.name
-        });
-      }
-    } catch (err) {
-      console.error('❌ Native NFT 조회 실패:', err);
-    }
-
-    try {
-      console.log('🔍 Fractional NFT 조회 중...');
-      const fractionalNFTs = await getEvmNFTs(provider, account, 'fractional');
-      console.log('✅ Fractional NFTs:', fractionalNFTs);
-      
-      for (let nft of fractionalNFTs) {
-        const metadata = await fetchMetadata(nft.tokenURI);
-        allNFTs.push({
-          ...nft,
-          metadata,
-          chain: currentChain.name
-        });
-      }
-    } catch (err) {
-      console.error('❌ Fractional NFT 조회 실패:', err);
-    }
-
+  
     return allNFTs;
-  };
+  }, [provider, account, currentChain]); 
 
   // 사용자의 NFT 목록 가져오기
   const loadNFTs = useCallback(async () => {
@@ -174,7 +143,7 @@ const NFTDisplay = () => {
     } finally {
       setLoading(false);
     }
-  }, [isConnected, provider, account, currentChain]);
+  }, [isConnected, provider, account, currentChain, loadEvmNFTs]);
 
   // 계정 변경 시 NFT 다시 로드
   useEffect(() => {
@@ -188,7 +157,19 @@ const NFTDisplay = () => {
     } else {
       setNfts([]);
     }
-  }, [isConnected, account, currentChain?.id]);
+  }, [isConnected, account, currentChain, loadNFTs]);
+
+  // NFT 타입별 한글 이름 매핑
+  const getNftTypeName = (type) => {
+    const typeNames = {
+      native: 'Native NFT',
+      soulbound: 'Soulbound',
+      fractional: 'Fractional',
+      dynamic: 'Dynamic',
+      composable: 'Composable'
+    };
+    return typeNames[type] || type;
+  };
 
   if (!isConnected) {
     return (
@@ -248,9 +229,7 @@ const NFTDisplay = () => {
                 
                 <div className="nft-meta">
                   <span className={`nft-type ${nft.type}`}>
-                    {nft.type === 'soulbound' && 'Soulbound'}
-                    {nft.type === 'native' && 'Native NFT'}
-                    {nft.type === 'fractional' && 'Fractional'}
+                    {getNftTypeName(nft.type)}
                   </span>
                   <span className="nft-token-id">
                     #{nft.tokenId}

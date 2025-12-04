@@ -27,7 +27,7 @@ const MintForm = () => {
     console.log('🔄 체인 변경 감지:', currentChain?.name);
     setMintResult(null);
     setError(null);
-  }, [currentChain?.id]);
+  }, [currentChain?.id, currentChain?.name]);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -154,6 +154,24 @@ const MintForm = () => {
               />
               <span>Fractional NFT</span>
             </label>
+            <label className="radio-label">
+              <input
+                type="radio"
+                value="dynamic"
+                checked={nftType === 'dynamic'}
+                onChange={(e) => setNftType(e.target.value)}
+              />
+              <span>Dynamic NFT</span>
+            </label>
+            <label className="radio-label">
+              <input
+                type="radio"
+                value="composable"
+                checked={nftType === 'composable'}
+                onChange={(e) => setNftType(e.target.value)}
+              />
+              <span>Composable NFT</span>
+            </label>
           </div>
         </div>
 
@@ -225,7 +243,8 @@ const MintForm = () => {
 
         {mintResult && (
           <div className="success-message">
-            <h3>민팅 성공! 🎉</h3>
+            <h3>민팅 성공!</h3>
+            <p><strong>NFT 타입:</strong> {[mintResult.nftType]}</p>
             <p><strong>체인:</strong> {mintResult.chain}</p>
             {mintResult.tokenId && (
               <p><strong>Token ID:</strong> {mintResult.tokenId}</p>

@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
-import { transferNFT, burnNFT } from '../utils/EVMcontract';
+import { transferNFT, burnNFT, getContract } from '../utils/EVMcontract';
 import './NFTDisplay.css';
 import './NFTManagePage.css';
 
 const NFTManagePage = () => {
-  // useWeb3 대신 직접 state 관리
   const [provider, setProvider] = useState(null);
   const [currentChain, setCurrentChain] = useState(null);
   const [nft, setNft] = useState(null);
@@ -16,13 +15,18 @@ const NFTManagePage = () => {
   const [txHash, setTxHash] = useState(null);
   const [isProviderReady, setIsProviderReady] = useState(false);
 
-  // 새 창에서 독립적으로 Provider 초기화 (Trust Wallet만 사용)
+  // 분할 관련 state
+  const [fractionName, setFractionName] = useState('');
+  const [fractionSymbol, setFractionSymbol] = useState('');
+  const [totalFractions, setTotalFractions] = useState();
+  const [buyoutPrice, setBuyoutPrice] = useState('');
+  const [isFractionalized, setIsFractionalized] = useState(false);
+
   useEffect(() => {
     const initProvider = async () => {
       try {
         console.log('🔌 Provider 초기화 시작...');
         
-        // Trust Wallet만 확인
         if (!window.trustwallet && !window.ethereum) {
           throw new Error('Trust Wallet이 설치되어 있지 않습니다.');
         }
@@ -33,13 +37,11 @@ const NFTManagePage = () => {
         const ethersProvider = new ethers.BrowserProvider(selectedProvider);
         setProvider(ethersProvider);
         
-        // 체인 정보 가져오기
         const network = await ethersProvider.getNetwork();
         const chainId = Number(network.chainId);
         
         console.log('📡 네트워크 정보:', { chainId, name: network.name });
         
-        // 체인 정보 설정
         let chainInfo;
         if (chainId === 1) {
           chainInfo = {
@@ -75,7 +77,6 @@ const NFTManagePage = () => {
   }, []);
 
   useEffect(() => {
-    // URL 파라미터에서 NFT 데이터 가져오기
     const params = new URLSearchParams(window.location.search);
     const nftData = params.get('nft');
     
@@ -89,12 +90,27 @@ const NFTManagePage = () => {
         if (parsedNft.type === 'soulbound') {
           setActiveTab('burn');
         }
+        
+        // Fractional NFT 분할 상태 확인
+        if (parsedNft.type === 'fractional' && provider) {
+          checkFractionalStatus(parsedNft.tokenId);
+        }
       } catch (err) {
         console.error('NFT 데이터 파싱 실패:', err);
         setError('NFT 정보를 불러올 수 없습니다.');
       }
     }
-  }, []);
+  }, [provider]);
+
+  const checkFractionalStatus = async (tokenId) => {
+    try {
+      const contract = await getContract(provider, 'fractional');
+      const fractionalized = await contract.isFractionalized(tokenId);
+      setIsFractionalized(fractionalized);
+    } catch (err) {
+      console.error('분할 상태 확인 실패:', err);
+    }
+  };
 
   const convertIpfsUrl = (url) => {
     if (!url) return '';
@@ -114,7 +130,6 @@ const NFTManagePage = () => {
   const handleTransfer = async (e) => {
     e.preventDefault();
     
-    // Provider 확인 추가
     if (!provider) {
       setError('지갑이 연결되지 않았습니다. 페이지를 새로고침해주세요.');
       return;
@@ -163,7 +178,6 @@ const NFTManagePage = () => {
   };
 
   const handleBurn = async () => {
-    // Provider 확인 추가
     if (!provider) {
       setError('지갑이 연결되지 않았습니다. 페이지를 새로고침해주세요.');
       return;
@@ -189,10 +203,79 @@ const NFTManagePage = () => {
 
     } catch (err) {
       console.error('소각 실패:', err);
+      setError(err.message || '소각에 실패했습니다.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleFractionalize = async (e) => {
+    e.preventDefault();
+
+    if (!provider) {
+      setError('지갑이 연결되지 않았습니다.');
+      return;
+    }
+
+    if (!fractionName || !fractionSymbol) {
+      setError('모든 필드를 입력해주세요.');
+      return;
+    }
+
+    setIsProcessing(true);
+    setError(null);
+    setTxHash(null);
+
+    try {
+      const contract = await getContract(provider, 'fractional');
+      const buyoutPriceWei = ethers.parseEther(buyoutPrice);
+
+      console.log('NFT 분할 시작:', {
+        tokenId: nft.tokenId,
+        fractionName,
+        fractionSymbol,
+        totalFractions,
+        buyoutPrice: buyoutPriceWei.toString()
+      });
+
+      const tx = await contract.fractionalizeNFT(
+        nft.tokenId,
+        fractionName,
+        fractionSymbol,
+        totalFractions,
+        buyoutPriceWei
+      );
+
+      console.log('트랜잭션 전송됨:', tx.hash);
+      const receipt = await tx.wait();
       
-      // 사용자 친화적인 에러 메시지
-      let errorMessage = err.message || '소각에 실패했습니다.';
-      setError(errorMessage);
+      setTxHash(receipt.hash);
+
+      // 이벤트에서 ERC-20 토큰 주소 추출
+      const event = receipt.logs.find(log => {
+        try {
+          const parsed = contract.interface.parseLog(log);
+          return parsed.name === 'NFTFractionalized';
+        } catch {
+          return false;
+        }
+      });
+
+      let fractionTokenAddress = null;
+      if (event) {
+        const parsed = contract.interface.parseLog(event);
+        fractionTokenAddress = parsed.args.fractionToken;
+      }
+
+      setTimeout(() => {
+        window.opener?.postMessage({ type: 'NFT_UPDATED' }, '*');
+        alert(`분할 완료!\n\nERC-20 토큰 주소:\n${fractionTokenAddress}\n\n메타마스크에 추가하여 조각을 확인하세요.`);
+        window.close();
+      }, 3000);
+
+    } catch (err) {
+      console.error('분할 실패:', err);
+      setError(err.message || 'NFT 분할에 실패했습니다.');
     } finally {
       setIsProcessing(false);
     }
@@ -222,6 +305,7 @@ const NFTManagePage = () => {
   }
 
   const isSoulbound = nft.type === 'soulbound';
+  const isFractional = nft.type === 'fractional';
 
   return (
     <div className="manage-page">
@@ -242,13 +326,20 @@ const NFTManagePage = () => {
           <p className="token-id">Token ID: #{nft.tokenId}</p>
           <div className="nft-badges">
             <span className={`nft-type ${nft.type}`}>
-              {nft.type === 'soulbound' && '🔒 Soulbound'}
-              {nft.type === 'native' && '🔄 Native NFT'}
-              {nft.type === 'fractional' && '💎 Fractional'}
+              {nft.type === 'soulbound' && 'Soulbound'}
+              {nft.type === 'native' && 'Native NFT'}
+              {nft.type === 'fractional' && 'Fractional'}
+              {nft.type === 'dynamic' && 'Dynamic'}
+              {nft.type === 'composable' && 'Composable'}
             </span>
             <span className="nft-chain">
               {nft.chain}
             </span>
+            {isFractionalized && (
+              <span className="nft-fractionalized">
+                이미 분할됨
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -259,9 +350,15 @@ const NFTManagePage = () => {
         </div>
       )}
 
+      {isFractional && isFractionalized && (
+        <div className="info-banner">
+          ℹ️ 이 NFT는 이미 분할되었습니다. 전송 및 소각이 불가능합니다.
+        </div>
+      )}
+
       <div className="tabs-container">
         <div className="tabs">
-          {!isSoulbound && (
+          {!isSoulbound && !isFractionalized && (
             <button
               className={`tab ${activeTab === 'transfer' ? 'active' : ''}`}
               onClick={() => setActiveTab('transfer')}
@@ -269,16 +366,26 @@ const NFTManagePage = () => {
               전송
             </button>
           )}
-          <button
-            className={`tab ${activeTab === 'burn' ? 'active' : ''}`}
-            onClick={() => setActiveTab('burn')}
-          >
-            소각
-          </button>
+          {!isFractionalized && (
+            <button
+              className={`tab ${activeTab === 'burn' ? 'active' : ''}`}
+              onClick={() => setActiveTab('burn')}
+            >
+              소각
+            </button>
+          )}
+          {isFractional && !isFractionalized && (
+            <button
+              className={`tab ${activeTab === 'fractionalize' ? 'active' : ''}`}
+              onClick={() => setActiveTab('fractionalize')}
+            >
+              분할
+            </button>
+          )}
         </div>
 
         <div className="tab-content">
-          {activeTab === 'transfer' && !isSoulbound && (
+          {activeTab === 'transfer' && !isSoulbound && !isFractionalized && (
             <form onSubmit={handleTransfer} className="action-form">
               <div className="form-group">
                 <label htmlFor="recipient">받는 주소</label>
@@ -304,7 +411,7 @@ const NFTManagePage = () => {
             </form>
           )}
 
-          {activeTab === 'burn' && (
+          {activeTab === 'burn' && !isFractionalized && (
             <div className="burn-section">
               <div className="warning-box">
                 <p>⚠️ <strong>주의:</strong> NFT를 소각하면 영구적으로 삭제됩니다.</p>
@@ -319,6 +426,76 @@ const NFTManagePage = () => {
                 {isProcessing ? '소각 중...' : '🔥 소각하기'}
               </button>
             </div>
+          )}
+
+          {activeTab === 'fractionalize' && isFractional && !isFractionalized && (
+            <form onSubmit={handleFractionalize} className="action-form">
+              <div className="form-group">
+                <label htmlFor="fractionName">조각 토큰 이름</label>
+                <input
+                  id="fractionName"
+                  type="text"
+                  value={fractionName}
+                  onChange={(e) => setFractionName(e.target.value)}
+                  placeholder="예: Fractional Art Token"
+                  disabled={isProcessing}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="fractionSymbol">조각 토큰 심볼</label>
+                <input
+                  id="fractionSymbol"
+                  type="text"
+                  value={fractionSymbol}
+                  onChange={(e) => setFractionSymbol(e.target.value)}
+                  placeholder="예: FART"
+                  disabled={isProcessing}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="totalFractions">총 조각 개수</label>
+                <input
+                  id="totalFractions"
+                  type="number"
+                  value={totalFractions}
+                  onChange={(e) => setTotalFractions(Number(e.target.value))}
+                  placeholder="예: 5"
+                  disabled={isProcessing}
+                  required
+                />
+                <small>이 개수만큼 ERC-20 토큰이 생성됩니다</small>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="buyoutPrice">매입 가격 (ETH)</label>
+                <input
+                  id="buyoutPrice"
+                  type="text"
+                  value={buyoutPrice}
+                  onChange={(e) => setBuyoutPrice(e.target.value)}
+                  placeholder="예: 0.01"
+                  disabled={isProcessing}
+                  required
+                />
+                <small>누군가 이 가격을 지불하면 전체 NFT를 매입할 수 있습니다</small>
+              </div>
+
+              <div className="price-info-box">
+                <strong>조각당 가격:</strong> {(parseFloat(buyoutPrice) / totalFractions).toFixed(6)} ETH
+              </div>
+
+              <button
+                type="submit"
+                className="action-button fractionalize"
+                disabled={isProcessing}
+              >
+                {isProcessing ? '분할 중...' : 'NFT 분할하기'}
+              </button>
+            </form>
           )}
         </div>
 

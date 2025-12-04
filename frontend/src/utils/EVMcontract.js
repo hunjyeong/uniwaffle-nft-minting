@@ -2,7 +2,9 @@ import { ethers } from 'ethers';
 import {
   NATIVENFT_ABI,
   SOULBOUND_ABI,
-  FRACTIONAL_ABI
+  FRACTIONAL_ABI,
+  DYNAMIC_ABI,
+  COMPOSABLE_ABI
 } from '../config/contracts.js';
 
 // 컨트랙트 주소 (체인별로 환경 변수에서 로드)
@@ -11,43 +13,57 @@ const CONTRACT_ADDRESSES = {
   '0xaa36a7': {
     native: process.env.REACT_APP_SEPOLIA_NATIVE_ADDRESS || '',
     soulbound: process.env.REACT_APP_SEPOLIA_SOULBOUND_ADDRESS || '',
-    fractional: process.env.REACT_APP_SEPOLIA_FRACTIONAL_ADDRESS || ''
+    fractional: process.env.REACT_APP_SEPOLIA_FRACTIONAL_ADDRESS || '',
+    dynamic: process.env.REACT_APP_SEPOLIA_DYNAMIC_ADDRESS || '',
+    composable: process.env.REACT_APP_SEPOLIA_COMPOSABLE_ADDRESS || ''
   },
   // Ethereum Mainnet
   '0x1': {
     native: process.env.REACT_APP_MAINNET_NATIVE_ADDRESS || '',
     soulbound: process.env.REACT_APP_MAINNET_SOULBOUND_ADDRESS || '',
-    fractional: process.env.REACT_APP_MAINNET_FRACTIONAL_ADDRESS || ''
+    fractional: process.env.REACT_APP_MAINNET_FRACTIONAL_ADDRESS || '',
+    dynamic: process.env.REACT_APP_MAINNET_DYNAMIC_ADDRESS || '',
+    composable: process.env.REACT_APP_MAINNET_COMPOSABLE_ADDRESS || ''
   },
   // Polygon
   '0x89': {
     native: process.env.REACT_APP_POLYGON_NATIVE_ADDRESS || '',
     soulbound: process.env.REACT_APP_POLYGON_SOULBOUND_ADDRESS || '',
-    fractional: process.env.REACT_APP_POLYGON_FRACTIONAL_ADDRESS || ''
+    fractional: process.env.REACT_APP_POLYGON_FRACTIONAL_ADDRESS || '',
+    dynamic: process.env.REACT_APP_POLYGON_DYNAMIC_ADDRESS || '',
+    composable: process.env.REACT_APP_POLYGON_COMPOSABLE_ADDRESS || ''
   },
   // Arbitrum
   '0xa4b1': {
     native: process.env.REACT_APP_ARBITRUM_NATIVE_ADDRESS || '',
     soulbound: process.env.REACT_APP_ARBITRUM_SOULBOUND_ADDRESS || '',
-    fractional: process.env.REACT_APP_ARBITRUM_FRACTIONAL_ADDRESS || ''
+    fractional: process.env.REACT_APP_ARBITRUM_FRACTIONAL_ADDRESS || '',
+    dynamic: process.env.REACT_APP_ARBITRUM_DYNAMIC_ADDRESS || '',
+    composable: process.env.REACT_APP_ARBITRUM_COMPOSABLE_ADDRESS || ''
   },
   // Optimism
   '0xa': {
     native: process.env.REACT_APP_OPTIMISM_NATIVE_ADDRESS || '',
     soulbound: process.env.REACT_APP_OPTIMISM_SOULBOUND_ADDRESS || '',
-    fractional: process.env.REACT_APP_OPTIMISM_FRACTIONAL_ADDRESS || ''
+    fractional: process.env.REACT_APP_OPTIMISM_FRACTIONAL_ADDRESS || '',
+    dynamic: process.env.REACT_APP_OPTIMISM_DYNAMIC_ADDRESS || '',
+    composable: process.env.REACT_APP_OPTIMISM_COMPOSABLE_ADDRESS || ''
   },
   // Base
   '0x2105': {
     native: process.env.REACT_APP_BASE_NATIVE_ADDRESS || '',
     soulbound: process.env.REACT_APP_BASE_SOULBOUND_ADDRESS || '',
-    fractional: process.env.REACT_APP_BASE_FRACTIONAL_ADDRESS || ''
+    fractional: process.env.REACT_APP_BASE_FRACTIONAL_ADDRESS || '',
+    dynamic: process.env.REACT_APP_BASE_DYNAMIC_ADDRESS || '',
+    composable: process.env.REACT_APP_BASE_COMPOSABLE_ADDRESS || ''
   },
-  // Base
+  // Base Sepolia
   '0x14a34': {
     native: process.env.REACT_APP_BASE_SEPOLIA_NATIVE_ADDRESS || '',
     soulbound: process.env.REACT_APP_BASE_SEPOLIA_SOULBOUND_ADDRESS || '',
-    fractional: process.env.REACT_APP_BASE_SEPOLIA_FRACTIONAL_ADDRESS || ''
+    fractional: process.env.REACT_APP_BASE_SEPOLIA_FRACTIONAL_ADDRESS || '',
+    dynamic: process.env.REACT_APP_BASE_SEPOLIA_DYNAMIC_ADDRESS || '',
+    composable: process.env.REACT_APP_BASE_SEPOLIA_COMPOSABLE_ADDRESS || ''
   }
 };
 
@@ -60,6 +76,10 @@ const getABI = (nftType) => {
       return SOULBOUND_ABI;
     case 'fractional':
       return FRACTIONAL_ABI;
+    case 'dynamic':
+      return DYNAMIC_ABI;
+    case 'composable':
+      return COMPOSABLE_ABI;
     default:
       throw new Error('Invalid NFT type');
   }
@@ -113,27 +133,29 @@ export const mintEvmNFT = async (provider, nftType, recipientAddress, tokenURI) 
       contractAddress
     });
     
-    console.log('mintWithURI 호출 중...');
+    // NFT 타입별로 다른 함수 호출
+    let tx;
     
-    // 🔥 데이터 인코딩하고 0x 강제로 붙이기
-    let data = contract.interface.encodeFunctionData('mintWithURI', [
-      recipientAddress,
-      tokenURI
-    ]);
-    
-    // 0x 접두사가 없으면 추가
-    if (!data.startsWith('0x')) {
-      data = '0x' + data;
-      console.log('0x 접두사 추가됨');
+    if (nftType === 'fractional') {
+      // FractionalNFT는 mint(address, string) 함수 사용
+      console.log('mint 함수 호출 중 (fractional)...');
+      tx = await contract.mint(recipientAddress, tokenURI);
+    } else if (nftType === 'dynamic') {
+      // DynamicNFT는 mint 또는 mintWithAttributes 사용
+      console.log('mint 함수 호출 중 (dynamic)...');
+      // 기본값으로 민팅 (가격이 설정되어 있다면 전송 필요)
+      const mintPrice = await contract.mintPrice();
+      tx = await contract.mint(recipientAddress, { value: mintPrice });
+    } else if (nftType === 'composable') {
+      // ComposableNFT는 mintParent 또는 mintChild 사용
+      console.log('mintParent 함수 호출 중 (composable)...');
+      const mintPrice = await contract.mintPrice();
+      tx = await contract.mintParent(recipientAddress, "default", { value: mintPrice });
+    } else {
+      // Native, Soulbound는 mintWithURI 사용
+      console.log('mintWithURI 함수 호출 중...');
+      tx = await contract.mintWithURI(recipientAddress, tokenURI);
     }
-    
-    console.log('인코딩된 데이터:', data.slice(0, 20) + '...');
-    
-    // 수동으로 트랜잭션 전송
-    const tx = await signer.sendTransaction({
-      to: contractAddress,
-      data: data
-    });
     
     console.log('트랜잭션 전송됨:', tx.hash);
     console.log('확인 대기 중...');
@@ -151,9 +173,9 @@ export const mintEvmNFT = async (provider, nftType, recipientAddress, tokenURI) 
           data: log.data
         });
         
-        if (parsedLog && parsedLog.name === 'NFTMinted') {
-          tokenId = parsedLog.args.tokenId.toString();
-          break;
+        if (parsedLog && (parsedLog.name === 'NFTMinted' || parsedLog.name === 'SoulboundMinted' || parsedLog.name === 'Transfer')) {
+          tokenId = parsedLog.args.tokenId?.toString();
+          if (tokenId) break;
         }
       } catch (e) {
         // 무시
@@ -217,18 +239,10 @@ export const transferNFT = async (provider, nftType, from, to, tokenId) => {
     const signer = await provider.getSigner();
     const userAddress = await signer.getAddress();
     
-    // console.log('=== 디버깅 정보 ===');
-    // console.log('👤 현재 연결된 주소:', userAddress);
-    // console.log('📄 컨트랙트 주소:', contract.target || contract.address);
-    // console.log('📤 From:', from);
-    // console.log('📥 To:', to);
-    // console.log('🔢 Token ID:', tokenId);
-    
-    // 소유권 확인 (선택적)
+    // 소유권 확인
     try {
       const owner = await contract.ownerOf(tokenId);
       console.log('🏷️ Token #' + tokenId + ' 소유자:', owner);
-      console.log('✅ 소유자 일치 여부:', owner.toLowerCase() === userAddress.toLowerCase());
       
       if (owner.toLowerCase() !== userAddress.toLowerCase()) {
         throw new Error(`이 NFT의 소유자가 아닙니다.\n소유자: ${owner}\n현재 주소: ${userAddress}`);
@@ -279,7 +293,6 @@ export const transferNFT = async (provider, nftType, from, to, tokenId) => {
   } catch (error) {
     console.error('❌ NFT 전송 실패:', error);
     
-    // 사용자 친화적 에러 메시지
     if (error.message.includes('자기 자신에게는 전송할 수 없습니다')) {
       throw error;
     } else if (error.message.includes('소유자가 아닙니다')) {
@@ -299,6 +312,7 @@ export const transferNFT = async (provider, nftType, from, to, tokenId) => {
     throw new Error('NFT 전송에 실패했습니다.');
   }
 };
+
 /**
  * NFT 소유자 확인
  */
@@ -328,9 +342,18 @@ export const getTokenURI = async (provider, nftType, tokenId) => {
 /**
  * 사용자가 소유한 NFT 목록 가져오기
  */
+/**
+ * 사용자가 소유한 NFT 목록 가져오기
+ */
 export const getEvmNFTs = async (provider, ownerAddress, nftType) => {
   try {
     const contract = await getContract(provider, nftType);
+    
+    // tokensOfOwner 함수 존재 여부 확인
+    if (!contract.tokensOfOwner) {
+      console.warn(`${nftType} 컨트랙트에 tokensOfOwner 함수가 없습니다.`);
+      return [];
+    }
     
     // tokensOfOwner 함수로 소유한 토큰 ID 목록 가져오기
     const tokens = await contract.tokensOfOwner(ownerAddress);
@@ -355,6 +378,11 @@ export const getEvmNFTs = async (provider, ownerAddress, nftType) => {
     return nfts;
     
   } catch (error) {
+    // 컨트랙트가 배포되지 않은 경우 빈 배열 반환
+    if (error.message.includes('컨트랙트를 찾을 수 없습니다')) {
+      console.log(`${nftType} 컨트랙트가 이 체인에 배포되지 않았습니다.`);
+      return [];
+    }
     console.error('EVM NFT 조회 실패:', error);
     throw error;
   }
@@ -379,10 +407,6 @@ export const getContractAddress = (chainId, nftType) => {
 
 /**
  * NFT 소각
- * @param {Object} provider - Ethers provider
- * @param {string} nftType - 'native', 'soulbound', 'fractional'
- * @param {string} tokenId - 토큰 ID
- * @returns {Object} 트랜잭션 결과
  */
 export const burnNFT = async (provider, nftType, tokenId) => {
   console.log('🔥 NFT 소각 시작:', { nftType, tokenId });
@@ -396,16 +420,10 @@ export const burnNFT = async (provider, nftType, tokenId) => {
     const signer = await provider.getSigner();
     const userAddress = await signer.getAddress();
     
-    // console.log('=== 디버깅 정보 ===');
-    // console.log('👤 현재 연결된 주소:', userAddress);
-    // console.log('📄 컨트랙트 주소:', contract.target || contract.address);
-    // console.log('🔢 Token ID:', tokenId);
-    
     // 소유권 확인
     try {
       const owner = await contract.ownerOf(tokenId);
       console.log('🏷️ Token #' + tokenId + ' 소유자:', owner);
-      console.log('✅ 소유자 일치 여부:', owner.toLowerCase() === userAddress.toLowerCase());
       
       if (owner.toLowerCase() !== userAddress.toLowerCase()) {
         throw new Error(`이 NFT의 소유자가 아닙니다.\n소유자: ${owner}\n현재 주소: ${userAddress}`);
@@ -419,8 +437,6 @@ export const burnNFT = async (provider, nftType, tokenId) => {
     }
     
     // burn 함수 확인
-    console.log('🔍 burn 함수 존재:', typeof contract.burn === 'function');
-    
     if (!contract.burn) {
       throw new Error('이 컨트랙트는 burn 기능을 지원하지 않습니다.');
     }
@@ -440,7 +456,7 @@ export const burnNFT = async (provider, nftType, tokenId) => {
     const tx = await contract.burn(tokenId);
     console.log('📝 트랜잭션 해시:', tx.hash);
     
-    // 트랜잭션 확인 대기 (에러 처리 강화)
+    // 트랜잭션 확인 대기
     console.log('⏳ 트랜잭션 확인 대기 중...');
     try {
       const receipt = await tx.wait();
@@ -452,7 +468,6 @@ export const burnNFT = async (provider, nftType, tokenId) => {
         receipt: receipt
       };
     } catch (waitError) {
-      // wait() 실패해도 트랜잭션은 이미 전송됨
       console.warn('⚠️ Receipt 대기 중 에러 발생 (트랜잭션은 전송되었습니다):', waitError);
       
       return {
@@ -464,14 +479,7 @@ export const burnNFT = async (provider, nftType, tokenId) => {
     
   } catch (error) {
     console.error('❌ NFT 소각 실패:', error);
-    console.error('에러 상세:', {
-      message: error.message,
-      code: error.code,
-      reason: error.reason,
-      data: error.data
-    });
     
-    // 사용자 친화적 에러 메시지
     if (error.message.includes('소유자가 아닙니다')) {
       throw error;
     } else if (error.message.includes('존재하지 않거나')) {

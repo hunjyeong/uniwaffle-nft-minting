@@ -279,4 +279,27 @@ contract FractionalNFT is ERC721URIStorage, Ownable, ReentrancyGuard {
     function totalSupply() external view returns (uint256) {
         return _tokenIdCounter;
     }
+    
+    /**
+     * 사용자가 소유한 NFT 목록 반환
+     */
+    function tokensOfOwner(address owner) external view returns (uint256[] memory) {
+        uint256 balance = balanceOf(owner);
+        uint256[] memory tokens = new uint256[](balance);
+        uint256 index = 0;
+        
+        for (uint256 i = 0; i < _tokenIdCounter; i++) {
+            try this.ownerOf(i) returns (address tokenOwner) {
+                if (tokenOwner == owner) {
+                    tokens[index] = i;
+                    index++;
+                }
+            } catch {
+                // 토큰이 존재하지 않거나 소각된 경우
+                continue;
+            }
+        }
+        
+        return tokens;
+    }
 }

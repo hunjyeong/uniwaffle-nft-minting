@@ -960,7 +960,7 @@ export const NATIVENFT_ABI = [
   }
 ];
 
-export const SOULBOUNDNFT_ABI = [
+export const SOULBOUND_ABI = [
   {
     "inputs": [
       {
@@ -1630,7 +1630,7 @@ export const SOULBOUNDNFT_ABI = [
   }
 ];
 
-export const DYNAMICNFT_ABI = [
+export const DYNAMIC_ABI = [
   {
     "inputs": [
       {
@@ -2765,7 +2765,7 @@ export const DYNAMICNFT_ABI = [
   }
 ];
 
-export const FRACTIONALNFT_ABI = [
+export const FRACTIONAL_ABI = [
   {
     "inputs": [
       {
@@ -3779,6 +3779,25 @@ export const FRACTIONALNFT_ABI = [
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      }
+    ],
+    "name": "tokensOfOwner",
+    "outputs": [
+      {
+        "internalType": "uint256[]",
+        "name": "",
+        "type": "uint256[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "totalSupply",
     "outputs": [
@@ -3854,7 +3873,7 @@ export const FRACTIONALNFT_ABI = [
   }
 ];
 
-export const COMPOSABLENFT_ABI = [
+export const COMPOSABLE_ABI = [
   {
     "inputs": [
       {
