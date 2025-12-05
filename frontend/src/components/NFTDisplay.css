@@ -171,26 +171,31 @@
 .nft-display .nft-type.soulbound {
   background: #ffe0e0;
   color: #c92a2a;
+  border: 1px solid #fca5a5;
 }
 
 .nft-display .nft-type.native {
   background: #d3f9d8;
   color: #2b8a3e;
+  border: 1px solid #69db7c;
 }
 
 .nft-display .nft-type.fractional {
   background: #e7f5ff;
   color: #1864ab;
+  border: 1px solid #74c0fc;
 }
 
 .nft-display .nft-type.dynamic {
   background: #f3e5f5;
   color: #6a1b9a;
+  border: 1px solid #ce93d8;
 }
 
 .nft-display .nft-type.composable {
   background: #fff3e0;
   color: #e65100;
+  border: 1px solid #ffb74d;
 }
 
 .nft-display .nft-token-id {

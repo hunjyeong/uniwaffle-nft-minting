@@ -174,6 +174,9 @@ const NFTDisplay = () => {
   if (!isConnected) {
     return (
       <div className="nft-display">
+        <div className="nft-header">
+          <h2>My NFT</h2>
+        </div>
         <p className="no-nfts">지갑을 연결하여 NFT를 확인하세요</p>
       </div>
     );
@@ -194,9 +197,9 @@ const NFTDisplay = () => {
           </button>
         </div>
       </div>
-
+  
       {error && <div className="error-message">{error}</div>}
-
+  
       {loading ? (
         <div className="loading">NFT를 불러오는 중...</div>
       ) : nfts.length === 0 ? (
@@ -263,7 +266,7 @@ const NFTDisplay = () => {
                       );
                     }}
                   >
-                    전송 및 소각
+                    NFT Management
                   </button>
                 </div>
               </div>

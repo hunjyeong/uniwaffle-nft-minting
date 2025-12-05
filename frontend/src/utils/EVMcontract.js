@@ -90,9 +90,23 @@ const getABI = (nftType) => {
  */
 export const getContract = async (provider, nftType) => {
   try {
+    if (!provider) {
+      throw new Error('Provider가 제공되지 않았습니다.');
+    }
+    
     const signer = await provider.getSigner();
-    const network = await provider.getNetwork();
-    const chainId = '0x' + network.chainId.toString(16);
+    
+    // 네트워크 변경 오류 방지
+    let chainId;
+    try {
+      const network = await provider.getNetwork();
+      chainId = '0x' + network.chainId.toString(16);
+    } catch (networkError) {
+      if (networkError.code === 'NETWORK_ERROR') {
+        throw new Error('NETWORK_CHANGING');
+      }
+      throw networkError;
+    }
 
     const contractAddress = CONTRACT_ADDRESSES[chainId]?.[nftType];
     
@@ -342,49 +356,175 @@ export const getTokenURI = async (provider, nftType, tokenId) => {
 /**
  * 사용자가 소유한 NFT 목록 가져오기
  */
-/**
- * 사용자가 소유한 NFT 목록 가져오기
- */
 export const getEvmNFTs = async (provider, ownerAddress, nftType) => {
   try {
+    console.log(`🔍 ${nftType} NFT 조회 중...`);
+    
     const contract = await getContract(provider, nftType);
     
-    // tokensOfOwner 함수 존재 여부 확인
-    if (!contract.tokensOfOwner) {
-      console.warn(`${nftType} 컨트랙트에 tokensOfOwner 함수가 없습니다.`);
-      return [];
-    }
+    let tokenIds = [];
     
-    // tokensOfOwner 함수로 소유한 토큰 ID 목록 가져오기
-    const tokens = await contract.tokensOfOwner(ownerAddress);
-    const tokenIds = tokens.map(token => token.toString());
-    
-    const nfts = [];
-    
-    for (let tokenId of tokenIds) {
-      try {
-        const tokenURI = await contract.tokenURI(tokenId);
+    // 방법 1: tokensOfOwner 시도
+    try {
+      if (contract.tokensOfOwner) {
+        const tokens = await contract.tokensOfOwner(ownerAddress);
+        tokenIds = tokens.map(token => token.toString());
+        console.log(`✅ ${nftType} tokensOfOwner 성공:`, tokenIds.length, '개');
+      } else {
+        throw new Error('함수 없음');
+      }
+    } catch (tokensErr) {
+      // CALL_EXCEPTION = tokensOfOwner 함수가 없거나 실행 실패
+      if (tokensErr.code === 'CALL_EXCEPTION' || tokensErr.message.includes('함수 없음')) {
+        console.log(`⚠️ ${nftType}: tokensOfOwner 없음, balanceOf 방식 사용`);
         
-        nfts.push({
-          tokenId: tokenId,
-          tokenURI: tokenURI,
-          type: nftType
-        });
+        try {
+          // 방법 2: balanceOf 확인
+          const balance = await contract.balanceOf(ownerAddress);
+          const balanceNum = Number(balance);
+          
+          console.log(`📊 ${nftType} balance:`, balanceNum);
+          
+          if (balanceNum === 0) {
+            console.log(`ℹ️ ${nftType}: 보유 NFT 없음`);
+            return [];
+          }
+          
+          // 방법 3: totalSupply 기반 스캔
+          let maxScan = 100;
+          try {
+            const totalSupply = await contract.totalSupply();
+            maxScan = Math.min(Number(totalSupply), 100);
+            console.log(`📦 ${nftType} totalSupply:`, totalSupply.toString(), '→ 최대', maxScan, '개 스캔');
+          } catch {
+            console.log(`⚠️ totalSupply 없음, 100개까지만 스캔`);
+          }
+          
+          // 병렬 스캔
+          const promises = [];
+          for (let i = 0; i < maxScan; i++) {
+            promises.push(
+              contract.ownerOf(i)
+                .then(owner => owner.toLowerCase() === ownerAddress.toLowerCase() ? i.toString() : null)
+                .catch(() => null)
+            );
+          }
+          
+          const results = await Promise.all(promises);
+          tokenIds = results.filter(id => id !== null);
+          
+          console.log(`✅ ${nftType} 스캔 완료:`, tokenIds.length, '개 발견');
+          
+        } catch (scanErr) {
+          console.error(`❌ ${nftType} 스캔 실패:`, scanErr.message);
+          return [];
+        }
+      } else {
+        throw tokensErr;
+      }
+    }
+
+    // Fractional NFT: 분할된 NFT도 조회 (조각 보유 중인 것)
+    if (nftType === 'fractional') {
+      console.log('🔍 분할된 Fractional NFT 조회 중...');
+      try {
+        const totalSupply = await contract.totalSupply();
+        const maxScan = Math.min(Number(totalSupply), 100);
+        
+        for (let i = 0; i < maxScan; i++) {
+          try {
+            const isFractionalized = await contract.isFractionalized(i);
+            if (isFractionalized) {
+              const fractionData = await contract.fractionalizedNFTs(i);
+              const tokenAddress = fractionData.fractionToken;
+              
+              // ERC-20 잔액 확인
+              const tokenAbi = ['function balanceOf(address) view returns (uint256)'];
+              const tokenContract = new ethers.Contract(tokenAddress, tokenAbi, provider);
+              const balance = await tokenContract.balanceOf(ownerAddress);
+              
+              if (balance > 0n && !tokenIds.includes(i.toString())) {
+                console.log(`✅ 분할된 NFT #${i} 발견 (조각 보유량: ${balance.toString()})`);
+                tokenIds.push(i.toString());
+              }
+            }
+          } catch (err) {
+            // 개별 토큰 조회 실패는 무시
+          }
+        }
       } catch (err) {
-        console.error(`Token ${tokenId} 메타데이터 로드 실패:`, err);
+        console.warn('⚠️ 분할 NFT 조회 실패:', err.message);
       }
     }
     
+    if (tokenIds.length === 0) {
+      return [];
+    }
+    
+    // 메타데이터 가져오기
+    const nfts = [];
+    for (let tokenId of tokenIds) {
+      try {
+        let tokenURI = '';
+        try {
+          tokenURI = await contract.tokenURI(tokenId);
+        } catch {
+          console.warn(`Token ${tokenId} URI 없음`);
+        }
+        
+        let metadata = { name: `Token #${tokenId}` };
+        
+        if (tokenURI) {
+          try {
+            let url = tokenURI;
+
+            url = url.replace(/ipfs:\/\//g, '');
+
+            const ipfsHashMatch = url.match(/(Qm[a-zA-Z0-9]{44,}|bafy[a-zA-Z0-9]{50,})/);
+            if (ipfsHashMatch) {
+              url = 'https://gateway.pinata.cloud/ipfs/' + ipfsHashMatch[0];
+            } else if (url.startsWith('http://') || url.startsWith('https://')) {
+              // 이미 완전한 URL이면 그대로
+            } else {
+              // 그 외의 경우
+              url = 'https://gateway.pinata.cloud/ipfs/' + url;
+            }
+            
+            const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
+            if (response.ok) {
+              metadata = await response.json();
+            }
+          } catch {}
+        }
+        
+        nfts.push({
+          tokenId,
+          tokenURI,
+          type: nftType,
+          metadata,
+          contractAddress: contract.target
+        });
+      } catch {}
+    }
+    
+    console.log(`✅ ${nftType} NFTs:`, nfts.length, '개');
     return nfts;
     
   } catch (error) {
-    // 컨트랙트가 배포되지 않은 경우 빈 배열 반환
-    if (error.message.includes('컨트랙트를 찾을 수 없습니다')) {
+    // 네트워크 전환 중
+    if (error.message === 'NETWORK_CHANGING' || error.code === 'NETWORK_ERROR') {
+      console.log(`⏸️ ${nftType}: 네트워크 전환 중, 스킵`);
+      return [];
+    }
+    
+    // 컨트랙트 미배포
+    if (error.message.includes('찾을 수 없습니다')) {
       console.log(`${nftType} 컨트랙트가 이 체인에 배포되지 않았습니다.`);
       return [];
     }
-    console.error('EVM NFT 조회 실패:', error);
-    throw error;
+    
+    console.error(`EVM NFT 조회 실패:`, error);
+    return [];
   }
 };
 

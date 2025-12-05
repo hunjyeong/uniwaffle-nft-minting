@@ -254,6 +254,20 @@ contract FractionalNFT is ERC721URIStorage, Ownable, ReentrancyGuard {
         );
     }
     
+    // 투표 여부 확인 함수 추가
+    function hasVoted(uint256 tokenId, address voter) external view returns (bool) {
+        return buyoutProposals[tokenId].hasVoted[voter];
+    }
+    
+    // 사용자의 조각 보유량 확인 (편의 함수)
+    function getMyFractionBalance(uint256 tokenId, address owner) external view returns (uint256) {
+        FractionalizedNFT storage fNFT = fractionalizedNFTs[tokenId];
+        if (!fNFT.isActive) return 0;
+        
+        FractionToken fractionToken = FractionToken(fNFT.fractionToken);
+        return fractionToken.balanceOf(owner);
+    }
+    
     // ========================================
     // 관리자 함수
     // ========================================
