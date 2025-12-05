@@ -165,6 +165,11 @@
 }
 
 /* ==================== 분할 토큰 정보 ==================== */
+.manage-page .token-info-section {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
 .manage-page .fraction-info-card {
   background: white;
   padding: 20px;
@@ -201,7 +206,7 @@
   padding: 10px 20px;
   border-bottom: 1px solid #eee;
 }
-아
+
 .manage-page .token-info-content .info-label {
   color: #666;
   font-weight: 500;
@@ -240,7 +245,7 @@
   border-radius: 4px;
   cursor: pointer;
   font-size: 14px;
-  flex-shrink: 0; /* 버튼 크기 고정 */
+  flex-shrink: 0;
   transition: all 0.2s;
 }
 
@@ -304,10 +309,13 @@
   gap: 8px;
   border-bottom: 2px solid #f1f3f5;
   margin-bottom: 24px;
+  overflow-x: auto;
+  flex-wrap: nowrap;
 }
 
 .manage-page .tab {
   flex: 1;
+  min-width: 100px;
   padding: 12px 16px;
   background: none;
   border: none;
@@ -317,6 +325,7 @@
   color: #adb5bd;
   cursor: pointer;
   transition: all 0.2s;
+  white-space: nowrap;
 }
 
 .manage-page .tab:hover {
@@ -434,6 +443,7 @@
   border-radius: 8px;
   color: #1565c0;
   border: 1px solid #90caf9;
+  margin-bottom: 20px;
 }
 
 .manage-page .info-box h3 {
@@ -449,6 +459,31 @@
 }
 
 .manage-page .info-box p:last-child {
+  margin-bottom: 0;
+}
+
+/* 참고 노트 (조각 전송용) */
+.manage-page .info-note {
+  margin-top: 20px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+}
+
+.manage-page .info-note p {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  color: #495057;
+  line-height: 1.5;
+}
+
+.manage-page .info-note p:first-child {
+  font-weight: 600;
+  color: #212529;
+}
+
+.manage-page .info-note p:last-child {
   margin-bottom: 0;
 }
 
@@ -756,9 +791,19 @@
 }
 
 /* ==================== 반응형 ==================== */
-@media (max-width: 640px) {
+@media (max-width: 768px) {
+  .manage-page {
+    padding: 0 16px;
+    margin: 20px auto;
+  }
+
+  .manage-page .manage-header h1 {
+    font-size: 24px;
+  }
+
   .manage-page .nft-preview-card {
     flex-direction: column;
+    padding: 20px;
   }
   
   .manage-page .preview-image {
@@ -772,12 +817,33 @@
   }
 
   .manage-page .tabs {
-    flex-wrap: wrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .manage-page .tabs::-webkit-scrollbar {
+    display: none;
   }
 
   .manage-page .tab {
-    flex: 1 1 auto;
-    min-width: 80px;
+    flex: 0 0 auto;
+    min-width: 90px;
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .manage-page .tabs-container {
+    padding: 16px;
+  }
+
+  .manage-page .action-form,
+  .manage-page .burn-section,
+  .manage-page .redeem-section,
+  .manage-page .vote-section,
+  .manage-page .token-info-section {
+    max-width: 100%;
   }
 
   .manage-page .vote-buttons {
@@ -791,6 +857,28 @@
   }
 
   .manage-page .proposal-detail .value {
+    word-break: break-all;
+  }
+
+  .manage-page .token-info-content .info-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding: 12px 16px;
+  }
+
+  .manage-page .token-info-content .info-value {
+    text-align: left;
+  }
+
+  .manage-page .token-info-content .info-value.address-value {
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+  }
+
+  .manage-page .token-info-content .token-address {
+    width: 100%;
     word-break: break-all;
   }
 }

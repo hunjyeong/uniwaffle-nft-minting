@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
 import { transferNFT, burnNFT, getContract } from '../utils/EVMcontract';
 import './NFTDisplay.css';
@@ -84,7 +84,7 @@ const FractionTokenInfo = ({ nft, provider }) => {
       </div>
       <div className="info-row">
         <span className="info-label">내 보유량:</span>
-        <span className="info-value balance">✨ {tokenInfo.balance} 조각</span>
+        <span className="info-value balance">{tokenInfo.balance} 조각</span>
       </div>
       <div className="info-row">
         <span className="info-label">매입 가격:</span>
@@ -128,6 +128,7 @@ const NFTManagePage = () => {
   const [nft, setNft] = useState(null);
   const [activeTab, setActiveTab] = useState('transfer');
   const [recipientAddress, setRecipientAddress] = useState('');
+  const [fractionAmount, setFractionAmount] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState(null);
   const [txHash, setTxHash] = useState(null);
@@ -193,6 +194,29 @@ const NFTManagePage = () => {
     
     initProvider();
   }, []);
+  
+  const checkFractionalStatus = useCallback(async (tokenId) => {
+    try {
+      const contract = await getContract(provider, 'fractional');
+      const fractionalized = await contract.isFractionalized(tokenId);
+      setIsFractionalized(fractionalized);
+      
+      try {
+        const floor = await contract.floorPrice();
+        const floorEth = ethers.formatEther(floor);
+        setFloorPrice(floorEth);
+        console.log(`🔍 NFT #${tokenId} 분할 상태:`, fractionalized);
+        console.log(`💰 컨트랙트 최소 가격:`, floorEth, 'ETH');
+      } catch (err) {
+        console.warn('floorPrice 조회 실패:', err);
+      }
+      
+      return fractionalized;
+    } catch (err) {
+      console.error('분할 상태 확인 실패:', err);
+      return false;
+    }
+  }, [provider]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -220,30 +244,7 @@ const NFTManagePage = () => {
         setError('NFT 정보를 불러올 수 없습니다.');
       }
     }
-  }, [provider]);
-
-  const checkFractionalStatus = async (tokenId) => {
-    try {
-      const contract = await getContract(provider, 'fractional');
-      const fractionalized = await contract.isFractionalized(tokenId);
-      setIsFractionalized(fractionalized);
-      
-      try {
-        const floor = await contract.floorPrice();
-        const floorEth = ethers.formatEther(floor);
-        setFloorPrice(floorEth);
-        console.log(`🔍 NFT #${tokenId} 분할 상태:`, fractionalized);
-        console.log(`💰 컨트랙트 최소 가격:`, floorEth, 'ETH');
-      } catch (err) {
-        console.warn('floorPrice 조회 실패:', err);
-      }
-      
-      return fractionalized;
-    } catch (err) {
-      console.error('분할 상태 확인 실패:', err);
-      return false;
-    }
-  };
+  }, [provider, checkFractionalStatus]);
 
   const convertIpfsUrl = (url) => {
     if (!url) return '';
@@ -308,6 +309,103 @@ const NFTManagePage = () => {
     }
   };
 
+  const handleTransferFractions = async () => {
+    if (!provider) {
+      setError('지갑이 연결되지 않았습니다.');
+      return;
+    }
+
+    if (!recipientAddress) {
+      setError('받는 주소를 입력해주세요.');
+      return;
+    }
+
+    if (!/^0x[a-fA-F0-9]{40}$/.test(recipientAddress)) {
+      setError('올바른 이더리움 주소를 입력해주세요.');
+      return;
+    }
+
+    if (!fractionAmount || Number(fractionAmount) <= 0) {
+      setError('전송할 조각 개수를 입력해주세요.');
+      return;
+    }
+
+    setIsProcessing(true);
+    setError(null);
+    setTxHash(null);
+
+    try {
+      const contract = await getContract(provider, 'fractional');
+      const signer = await provider.getSigner();
+      const userAddress = await signer.getAddress();
+      
+      // 분할 정보 가져오기
+      const fractionData = await contract.fractionalizedNFTs(nft.tokenId);
+      const tokenAddress = fractionData.fractionToken;
+      
+      console.log('🔍 조각 전송 시작:', {
+        tokenAddress,
+        recipient: recipientAddress,
+        amount: fractionAmount
+      });
+      
+      // ERC-20 토큰 컨트랙트 연결
+      const tokenAbi = [
+        'function balanceOf(address) view returns (uint256)',
+        'function transfer(address to, uint256 amount) returns (bool)',
+        'function symbol() view returns (string)'
+      ];
+      
+      const tokenContract = new ethers.Contract(tokenAddress, tokenAbi, signer);
+      
+      // 보유량 확인
+      const balance = await tokenContract.balanceOf(userAddress);
+      const symbol = await tokenContract.symbol();
+      
+      console.log('💰 내 보유량:', balance.toString(), symbol);
+      
+      if (balance < fractionAmount) {
+        throw new Error(
+          `조각이 부족합니다.\n` +
+          `보유량: ${balance.toString()}개\n` +
+          `전송 시도: ${fractionAmount}개`
+        );
+      }
+      
+      // 조각 전송
+      console.log('📤 조각 전송 중...');
+      const tx = await tokenContract.transfer(recipientAddress, fractionAmount);
+      
+      console.log('✅ 트랜잭션 전송됨:', tx.hash);
+      const receipt = await tx.wait();
+      
+      setTxHash(receipt.hash);
+      
+      alert(`조각 전송 완료!\n\n${fractionAmount}개의 ${symbol} 조각을\n${recipientAddress.slice(0, 6)}...${recipientAddress.slice(-4)}에게 전송했습니다.`);
+      
+      // 입력 필드 초기화
+      setRecipientAddress('');
+      setFractionAmount('');
+      
+    } catch (err) {
+      console.error('조각 전송 실패:', err);
+      
+      let errorMessage = '조각 전송에 실패했습니다.';
+      
+      if (err.message.includes('조각이 부족합니다')) {
+        errorMessage = err.message;
+      } else if (err.code === 4001) {
+        errorMessage = '사용자가 트랜잭션을 거부했습니다.';
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handleBurn = async () => {
     if (!provider) {
       setError('지갑이 연결되지 않았습니다. 페이지를 새로고침해주세요.');
@@ -356,7 +454,56 @@ const NFTManagePage = () => {
   
     try {
       const contract = await getContract(provider, 'fractional');
+      const signer = await provider.getSigner();
+      const userAddress = await signer.getAddress();
       
+      // 1. 분할 정보 가져오기
+      const fractionData = await contract.fractionalizedNFTs(nft.tokenId);
+      const tokenAddress = fractionData.fractionToken;
+      const totalFractions = fractionData.totalFractions;
+      
+      console.log('🔍 분할 정보:', {
+        tokenAddress,
+        totalFractions: totalFractions.toString()
+      });
+      
+      // 2. ERC-20 토큰 컨트랙트 연결
+      const tokenAbi = [
+        'function balanceOf(address) view returns (uint256)',
+        'function allowance(address owner, address spender) view returns (uint256)',
+        'function approve(address spender, uint256 amount) returns (bool)'
+      ];
+      
+      const tokenContract = new ethers.Contract(tokenAddress, tokenAbi, signer);
+      
+      // 3. 사용자 보유량 확인
+      const balance = await tokenContract.balanceOf(userAddress);
+      console.log('💰 내 보유량:', balance.toString());
+      console.log('💰 필요량:', totalFractions.toString());
+      
+      if (balance < totalFractions) {
+        throw new Error(
+          `조각이 부족합니다.\n` +
+          `필요: ${totalFractions.toString()}개\n` +
+          `보유: ${balance.toString()}개`
+        );
+      }
+      
+      // 4. Approve 확인
+      const contractAddress = contract.target || await contract.getAddress();
+      const allowance = await tokenContract.allowance(userAddress, contractAddress);
+      console.log('✅ 현재 Allowance:', allowance.toString());
+      
+      // 5. Approve가 필요하면 먼저 실행
+      if (allowance < totalFractions) {
+        console.log('⚠️ Approve 필요, 진행 중...');
+        const approveTx = await tokenContract.approve(contractAddress, totalFractions);
+        console.log('📤 Approve 트랜잭션:', approveTx.hash);
+        await approveTx.wait();
+        console.log('✅ Approve 완료!');
+      }
+      
+      // 6. 재결합 실행
       console.log('🔄 NFT 재결합 시작...');
       const tx = await contract.redeemNFT(nft.tokenId);
       
@@ -372,7 +519,22 @@ const NFTManagePage = () => {
       }, 3000);
     } catch (err) {
       console.error('재결합 실패:', err);
-      setError(err.message || 'NFT 재결합에 실패했습니다.');
+      
+      let errorMessage = 'NFT 재결합에 실패했습니다.';
+      
+      if (err.message.includes('조각이 부족합니다')) {
+        errorMessage = err.message;
+      } else if (err.message.includes('Must own all fractions')) {
+        errorMessage = '모든 조각(100%)을 보유해야 재결합할 수 있습니다.';
+      } else if (err.message.includes('NFT not fractionalized')) {
+        errorMessage = '이 NFT는 분할되지 않았습니다.';
+      } else if (err.code === 4001) {
+        errorMessage = '사용자가 트랜잭션을 거부했습니다.';
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsProcessing(false);
     }
@@ -551,7 +713,7 @@ const NFTManagePage = () => {
 
       setTimeout(() => {
         window.opener?.postMessage({ type: 'NFT_UPDATED' }, '*');
-        alert(`분할 완료!\n\nERC-20 토큰 주소:\n${fractionTokenAddress}\n\nTrust Wallet에 추가하여 조각을 확인하세요.`);
+        alert(`분할 완료!\n\nERC-20 토큰 주소:\n${fractionTokenAddress}\n\nTrust Wallet에 추가하거나 앱에서 조각을 전송할 수 있습니다.`);
         window.close();
       }, 3000);
 
@@ -634,7 +796,7 @@ const NFTManagePage = () => {
 
       {isFractional && isFractionalized && (
         <div className="info-banner success">
-          ✅ 이 NFT는 분할되었습니다! 아래 탭에서 ERC-20 토큰 정보를 확인하세요.
+          ✅ 이 NFT는 분할되었습니다! 아래 탭에서 조각 정보를 확인하고 전송할 수 있습니다.
         </div>
       )}
 
@@ -652,6 +814,7 @@ const NFTManagePage = () => {
           {isFractional && isFractionalized && (
             <>
               <button className={`tab ${activeTab === 'tokenInfo' ? 'active' : ''}`} onClick={() => setActiveTab('tokenInfo')}>분할 토큰 정보</button>
+              <button className={`tab ${activeTab === 'transferFractions' ? 'active' : ''}`} onClick={() => setActiveTab('transferFractions')}>조각 전송</button>
               <button className={`tab ${activeTab === 'redeem' ? 'active' : ''}`} onClick={() => setActiveTab('redeem')}>재결합</button>
               <button className={`tab ${activeTab === 'buyout' ? 'active' : ''}`} onClick={() => setActiveTab('buyout')}>매입/투표</button>
             </>
@@ -681,6 +844,57 @@ const NFTManagePage = () => {
               >
                 {isProcessing ? '전송 중...' : '전송하기'}
               </button>
+            </div>
+          )}
+
+          {activeTab === 'transferFractions' && isFractional && isFractionalized && (
+            <div className="action-form">
+              <div className="info-box">
+                <h3>📤 조각 전송</h3>
+                <p>보유한 조각 토큰을 다른 주소로 전송할 수 있습니다.</p>
+                <p>Trust Wallet에 추가하지 않아도 앱에서 바로 전송 가능합니다.</p>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="fractionRecipient">받는 주소</label>
+                <input
+                  id="fractionRecipient"
+                  type="text"
+                  value={recipientAddress}
+                  onChange={(e) => setRecipientAddress(e.target.value)}
+                  placeholder="0x..."
+                  disabled={isProcessing}
+                />
+                <small>조각을 받을 이더리움 주소를 입력하세요</small>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="fractionAmount">전송할 조각 개수</label>
+                <input
+                  id="fractionAmount"
+                  type="number"
+                  value={fractionAmount}
+                  onChange={(e) => setFractionAmount(e.target.value)}
+                  placeholder="예: 5"
+                  min="1"
+                  disabled={isProcessing}
+                />
+                <small>전송할 조각의 개수를 입력하세요</small>
+              </div>
+
+              <button
+                onClick={handleTransferFractions}
+                className="action-button transfer"
+                disabled={isProcessing}
+              >
+                {isProcessing ? '전송 중...' : '조각 전송하기'}
+              </button>
+
+              <div className="info-note">
+                <p>💡 <strong>참고:</strong></p>
+                <p>• 분할 토큰 정보 탭에서 현재 보유량을 확인할 수 있습니다</p>
+                <p>• 재결합하려면 모든 조각(100%)이 필요합니다</p>
+              </div>
             </div>
           )}
 
@@ -804,7 +1018,7 @@ const NFTManagePage = () => {
 
               <div className="redeem-info">
                 <p>💡 재결합하면:</p>
-                <p>• 모든 HAPPY 토큰이 소각됩니다</p>
+                <p>• 모든 조각 토큰이 소각됩니다</p>
                 <p>• 원본 NFT #{nft.tokenId}를 다시 소유하게 됩니다</p>
                 <p>• 더 이상 분할 상태가 아닙니다</p>
               </div>
