@@ -199,3 +199,177 @@
     opacity: 0.6;
     cursor: not-allowed;
 }
+
+/* ============================================ */
+/* Dynamic NFT 메타데이터 섹션 */
+/* ============================================ */
+
+.mint-form-container .dynamic-metadata-section {
+    margin-top: 30px;
+    margin-bottom: 20px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 2px solid #dee2e6;
+}
+
+.mint-form-container .dynamic-metadata-section h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #212529;
+    font-size: 18px;
+}
+
+.mint-form-container .dynamic-metadata-section .info-text {
+    margin-bottom: 15px;
+    color: #6c757d;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+/* 메타데이터 필드 */
+.mint-form-container .metadata-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.mint-form-container .metadata-field-row {
+    background: white;
+    padding: 15px;
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+}
+
+.mint-form-container .field-inputs {
+    display: grid;
+    grid-template-columns: 1fr 2fr 32px;
+    gap: 12px;
+    align-items: end;
+}
+
+.mint-form-container .field-name-input,
+.mint-form-container .field-value-input {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.mint-form-container .field-name-input label,
+.mint-form-container .field-value-input label {
+    font-weight: 600;
+    color: #495057;
+    font-size: 13px;
+    margin: 0;
+}
+
+.mint-form-container .field-name-input input,
+.mint-form-container .field-value-input input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.mint-form-container .field-name-input input:focus,
+.mint-form-container .field-value-input input:focus {
+    outline: none;
+    border-color: #4263eb;
+}
+
+.mint-form-container .field-name-input small,
+.mint-form-container .field-value-input small {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    font-weight: 400;
+    color: #868e96;
+}
+
+.mint-form-container .remove-field-btn {
+    background: #fee;
+    border: 1px solid #fcc;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0;
+    transition: all 0.2s;
+    height: 32px;
+    width: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mint-form-container .remove-field-btn:hover {
+    background: #fcc;
+    transform: scale(1.05);
+}
+
+/* 필드 추가 버튼 */
+.mint-form-container .add-field-btn {
+    width: 100%;
+    padding: 12px;
+    background: #8bc34a;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 20px;
+}
+
+.mint-form-container .add-field-btn:hover {
+    background: #7cb342;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+}
+
+/* 메타데이터 미리보기 */
+.mint-form-container .metadata-preview-box {
+    padding: 15px;
+    background: white;
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+}
+
+.mint-form-container .metadata-preview-box h4 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 14px;
+    color: #495057;
+    font-weight: 600;
+}
+
+.mint-form-container .metadata-preview-box pre {
+    background: #f8f9fa;
+    padding: 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    overflow-x: auto;
+    margin: 0;
+    color: #212529;
+    line-height: 1.6;
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+    .mint-form-container {
+        padding: 16px;
+    }
+
+    .mint-form-container .field-inputs {
+        grid-template-columns: 1fr;
+    }
+    
+    .mint-form-container .remove-field-btn {
+        width: 100%;
+        height: auto;
+        padding: 10px;
+    }
+}

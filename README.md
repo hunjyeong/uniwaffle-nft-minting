@@ -18,6 +18,8 @@ git clone https://github.com/hunjyeong/uniwaffle-nft-minting.git
 cd uniwaffle-nft-minting
 
 npm install
+
+node scripts/extract-abi.js > abi-output.txt
 ```
 
 ## 환경 변수 설정
@@ -45,6 +47,9 @@ npx hardhat compile
 # Sepolia 테스트넷 배포
 npx hardhat run scripts/NFT_deploy.js --network sepolia
 npx hardhat run scripts/SBT_deploy.js --network sepolia
+npx hardhat run scripts/FractionalNFT_deploy.js --network sepolia
+npx hardhat run scripts/DynamicNFT_deploy.js --network sepolia
+npx hardhat run scripts/ComposableNFT_deploy.js --network sepolia
 
 # Mainnet에 배포
 npx hardhat run scripts/NFT_deploy.js --network mainnet

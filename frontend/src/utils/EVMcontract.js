@@ -155,11 +155,10 @@ export const mintEvmNFT = async (provider, nftType, recipientAddress, tokenURI) 
       console.log('mint 함수 호출 중 (fractional)...');
       tx = await contract.mint(recipientAddress, tokenURI);
     } else if (nftType === 'dynamic') {
-      // DynamicNFT는 mint 또는 mintWithAttributes 사용
+      // DynamicNFT는 mint(address, string) 함수 사용
       console.log('mint 함수 호출 중 (dynamic)...');
-      // 기본값으로 민팅 (가격이 설정되어 있다면 전송 필요)
       const mintPrice = await contract.mintPrice();
-      tx = await contract.mint(recipientAddress, { value: mintPrice });
+      tx = await contract.mint(recipientAddress, tokenURI, { value: mintPrice });
     } else if (nftType === 'composable') {
       // ComposableNFT는 mintParent 또는 mintChild 사용
       console.log('mintParent 함수 호출 중 (composable)...');

@@ -122,6 +122,329 @@ const FractionTokenInfo = ({ nft, provider }) => {
   );
 };
 
+// Dynamic NFT 메타데이터 관리 컴포넌트
+const DynamicNFTManager = ({ nft, provider, onSuccess, onError }) => {
+  const [metadata, setMetadata] = useState('');
+  const [metadataHistory, setMetadataHistory] = useState([]);
+  const [uriHistory, setUriHistory] = useState([]);
+  const [loadingMetadata, setLoadingMetadata] = useState(true);
+  const [newTokenURI, setNewTokenURI] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  // 메타데이터 필드 상태
+  const [metadataFields, setMetadataFields] = useState([
+    { id: 1, fieldName: '', value: '' },
+    { id: 2, fieldName: '', value: '' }
+  ]);
+
+  const loadMetadata = useCallback(async () => {
+    try {
+      setLoadingMetadata(true);
+      const contract = await getContract(provider, 'dynamic');
+      
+      // 현재 메타데이터 가져오기
+      const currentMetadata = await contract.getMetadata(nft.tokenId);
+      setMetadata(currentMetadata);
+      
+      // 메타데이터를 필드로 파싱
+      if (currentMetadata) {
+        try {
+          const parsed = JSON.parse(currentMetadata);
+          const fields = Object.entries(parsed).map(([key, value], index) => ({
+            id: Date.now() + index,
+            fieldName: key,
+            value: String(value)
+          }));
+          setMetadataFields(fields.length > 0 ? fields : [{ id: Date.now(), fieldName: '', value: '' }]);
+        } catch (e) {
+          console.error('메타데이터 파싱 실패:', e);
+        }
+      }
+      
+      // 메타데이터 히스토리 가져오기
+      const history = await contract.getMetadataHistory(nft.tokenId);
+      setMetadataHistory(history);
+      
+    } catch (err) {
+      console.error('메타데이터 로드 실패:', err);
+    } finally {
+      setLoadingMetadata(false);
+    }
+  }, [provider, nft.tokenId]);
+
+  const loadURIHistory = useCallback(async () => {
+    try {
+      const contract = await getContract(provider, 'dynamic');
+      const history = await contract.getURIHistory(nft.tokenId);
+      setUriHistory(history);
+    } catch (err) {
+      console.error('URI 히스토리 로드 실패:', err);
+    }
+  }, [provider, nft.tokenId]);
+
+  useEffect(() => {
+    loadMetadata();
+    loadURIHistory();
+  }, [loadMetadata, loadURIHistory]);
+
+  // 필드 추가
+  const addField = () => {
+    setMetadataFields([
+      ...metadataFields,
+      { id: Date.now(), fieldName: '', value: '' }
+    ]);
+  };
+
+  // 필드명 변경
+  const updateFieldName = (id, newName) => {
+    setMetadataFields(
+      metadataFields.map(field =>
+        field.id === id ? { ...field, fieldName: newName } : field
+      )
+    );
+  };
+
+  // 값 변경
+  const updateFieldValue = (id, newValue) => {
+    setMetadataFields(
+      metadataFields.map(field =>
+        field.id === id ? { ...field, value: newValue } : field
+      )
+    );
+  };
+
+  // 필드 삭제
+  const removeField = (id) => {
+    setMetadataFields(metadataFields.filter(field => field.id !== id));
+  };
+
+  // 배열을 객체로 변환
+  const getMetadataObject = () => {
+    const obj = {};
+    metadataFields.forEach(field => {
+      if (field.fieldName.trim()) {
+        obj[field.fieldName] = field.value;
+      }
+    });
+    return obj;
+  };
+
+  // 메타데이터 업데이트
+  const handleUpdateMetadata = async () => {
+    const metadataObj = getMetadataObject();
+    
+    if (Object.keys(metadataObj).length === 0) {
+      onError('최소 1개의 필드를 입력해주세요.');
+      return;
+    }
+
+    const metadataJson = JSON.stringify(metadataObj);
+
+    setIsProcessing(true);
+    try {
+      const contract = await getContract(provider, 'dynamic');
+      const tx = await contract.updateMetadata(nft.tokenId, metadataJson);
+      const receipt = await tx.wait();
+      
+      onSuccess('메타데이터가 업데이트되었습니다!', receipt.hash);
+      await loadMetadata();
+    } catch (err) {
+      console.error('메타데이터 업데이트 실패:', err);
+      if (err.message.includes('Not owner')) {
+        onError('권한이 없습니다. NFT 소유자만 메타데이터를 수정할 수 있습니다.');
+      } else {
+        onError(err.message || '메타데이터 업데이트에 실패했습니다.');
+      }
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // URI 업데이트
+  const handleUpdateTokenURI = async () => {
+    if (!newTokenURI) {
+      onError('새 Token URI를 입력해주세요.');
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const contract = await getContract(provider, 'dynamic');
+      const tx = await contract.updateTokenURI(nft.tokenId, newTokenURI);
+      const receipt = await tx.wait();
+      
+      onSuccess('Token URI가 업데이트되었습니다! 새로고침하면 변경사항을 확인할 수 있습니다.', receipt.hash);
+      setNewTokenURI('');
+      await loadURIHistory();
+      window.opener?.postMessage({ type: 'NFT_UPDATED' }, '*');
+    } catch (err) {
+      console.error('URI 업데이트 실패:', err);
+      if (err.message.includes('Not owner')) {
+        onError('권한이 없습니다. NFT 소유자만 URI를 수정할 수 있습니다.');
+      } else {
+        onError(err.message || 'URI 업데이트에 실패했습니다.');
+      }
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  if (loadingMetadata) {
+    return <div className="loading-small">메타데이터 로딩 중...</div>;
+  }
+
+  return (
+    <div className="dynamic-nft-manager">
+      {/* 현재 메타데이터 표시 */}
+      <div className="info-box">
+        <h3>📊 현재 메타데이터</h3>
+        {metadata ? (
+          <pre className="metadata-display">{metadata}</pre>
+        ) : (
+          <p className="no-metadata">메타데이터가 없습니다. 아래에서 추가해주세요.</p>
+        )}
+      </div>
+
+      {/* 메타데이터 편집 폼 */}
+      <div className="action-form">
+        <h4>✏️ 메타데이터 편집</h4>
+        <p className="info-text">
+          필드명과 값을 자유롭게 입력하세요. JSON 형식으로 저장됩니다.
+        </p>
+
+        {/* 필드 목록 */}
+        <div className="metadata-fields">
+          {metadataFields.map((field, index) => (
+            <div key={field.id} className="metadata-field-row">
+              <div className="field-inputs">
+                <div className="field-name-input">
+                  <label>필드명</label>
+                  <input
+                    type="text"
+                    value={field.fieldName}
+                    onChange={(e) => updateFieldName(field.id, e.target.value)}
+                    placeholder={
+                      index === 0 ? "예: 주소" :
+                      index === 1 ? "예: 건축연도" :
+                      "예: 레벨"
+                    }
+                    disabled={isProcessing}
+                  />
+                </div>
+                <div className="field-value-input">
+                  <label>값</label>
+                  <input
+                    type="text"
+                    value={field.value}
+                    onChange={(e) => updateFieldValue(field.id, e.target.value)}
+                    placeholder={
+                      index === 0 ? "예: 1001 Blockchain Rd." :
+                      index === 1 ? "예: 2022" :
+                      "값을 입력하세요"
+                    }
+                    disabled={isProcessing}
+                  />
+                </div>
+                <button
+                  type="button"
+                  className="remove-field-btn"
+                  onClick={() => removeField(field.id)}
+                  title="필드 삭제"
+                  disabled={isProcessing}
+                >
+                  🗑️
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* 필드 추가 버튼 */}
+        <button
+          type="button"
+          className="add-field-btn"
+          onClick={addField}
+          disabled={isProcessing}
+        >
+          ➕ 필드 추가
+        </button>
+
+        {/* 메타데이터 미리보기 */}
+        {metadataFields.length > 0 && (
+          <div className="metadata-preview-box">
+            <h4>저장될 메타데이터 미리보기</h4>
+            <pre>{JSON.stringify(getMetadataObject(), null, 2)}</pre>
+          </div>
+        )}
+
+        <button
+          onClick={handleUpdateMetadata}
+          className="action-button"
+          disabled={isProcessing}
+        >
+          {isProcessing ? '업데이트 중...' : '💾 메타데이터 저장'}
+        </button>
+      </div>
+
+      {/* 메타데이터 히스토리 */}
+      {metadataHistory.length > 0 && (
+        <div className="info-box">
+          <h4>📜 메타데이터 변경 히스토리</h4>
+          <div className="metadata-history">
+            {metadataHistory.map((meta, index) => (
+              <div key={index} className="history-item">
+                <div className="history-header">
+                  <span className="history-index">#{index + 1}</span>
+                  <span className="history-date">이전 버전</span>
+                </div>
+                <pre className="history-content">{meta}</pre>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 이미지/URI 변경 */}
+      <div className="action-form">
+        <h4>🖼️ 이미지 변경 (Token URI)</h4>
+        <div className="form-group">
+          <label>새 Token URI</label>
+          <input
+            type="text"
+            value={newTokenURI}
+            onChange={(e) => setNewTokenURI(e.target.value)}
+            placeholder="ipfs://Qm... 또는 https://..."
+            disabled={isProcessing}
+          />
+          <small>새로운 이미지나 메타데이터 파일의 URI를 입력하세요</small>
+        </div>
+        <button
+          onClick={handleUpdateTokenURI}
+          className="action-button"
+          disabled={isProcessing}
+        >
+          {isProcessing ? '업데이트 중...' : '🔄 URI 업데이트'}
+        </button>
+      </div>
+
+      {/* URI 히스토리 */}
+      {uriHistory.length > 0 && (
+        <div className="info-box">
+          <h4>📜 URI 변경 히스토리</h4>
+          <div className="uri-history">
+            {uriHistory.map((uri, index) => (
+              <div key={index} className="uri-history-item">
+                <span className="history-index">#{index + 1}</span>
+                <code className="history-uri">{uri}</code>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const NFTManagePage = () => {
   const [provider, setProvider] = useState(null);
   const [currentChain, setCurrentChain] = useState(null);
@@ -238,6 +561,8 @@ const NFTManagePage = () => {
           });
         } else if (parsedNft.type === 'soulbound') {
           setActiveTab('burn');
+        } else if (parsedNft.type === 'dynamic') {
+          setActiveTab('dynamicManage');
         }
       } catch (err) {
         console.error('NFT 데이터 파싱 실패:', err);
@@ -259,6 +584,17 @@ const NFTManagePage = () => {
       return `https://gateway.pinata.cloud/ipfs/${url}`;
     }
     return url;
+  };
+
+  const handleSuccess = (message, hash) => {
+    setError(null);
+    setTxHash(hash);
+    alert(message);
+  };
+
+  const handleError = (message) => {
+    setError(message);
+    setTxHash(null);
   };
 
   const handleTransfer = async () => {
@@ -339,7 +675,6 @@ const NFTManagePage = () => {
       const signer = await provider.getSigner();
       const userAddress = await signer.getAddress();
       
-      // 분할 정보 가져오기
       const fractionData = await contract.fractionalizedNFTs(nft.tokenId);
       const tokenAddress = fractionData.fractionToken;
       
@@ -349,7 +684,6 @@ const NFTManagePage = () => {
         amount: fractionAmount
       });
       
-      // ERC-20 토큰 컨트랙트 연결
       const tokenAbi = [
         'function balanceOf(address) view returns (uint256)',
         'function transfer(address to, uint256 amount) returns (bool)',
@@ -358,7 +692,6 @@ const NFTManagePage = () => {
       
       const tokenContract = new ethers.Contract(tokenAddress, tokenAbi, signer);
       
-      // 보유량 확인
       const balance = await tokenContract.balanceOf(userAddress);
       const symbol = await tokenContract.symbol();
       
@@ -372,7 +705,6 @@ const NFTManagePage = () => {
         );
       }
       
-      // 조각 전송
       console.log('📤 조각 전송 중...');
       const tx = await tokenContract.transfer(recipientAddress, fractionAmount);
       
@@ -383,7 +715,6 @@ const NFTManagePage = () => {
       
       alert(`조각 전송 완료!\n\n${fractionAmount}개의 ${symbol} 조각을\n${recipientAddress.slice(0, 6)}...${recipientAddress.slice(-4)}에게 전송했습니다.`);
       
-      // 입력 필드 초기화
       setRecipientAddress('');
       setFractionAmount('');
       
@@ -457,7 +788,6 @@ const NFTManagePage = () => {
       const signer = await provider.getSigner();
       const userAddress = await signer.getAddress();
       
-      // 1. 분할 정보 가져오기
       const fractionData = await contract.fractionalizedNFTs(nft.tokenId);
       const tokenAddress = fractionData.fractionToken;
       const totalFractions = fractionData.totalFractions;
@@ -467,7 +797,6 @@ const NFTManagePage = () => {
         totalFractions: totalFractions.toString()
       });
       
-      // 2. ERC-20 토큰 컨트랙트 연결
       const tokenAbi = [
         'function balanceOf(address) view returns (uint256)',
         'function allowance(address owner, address spender) view returns (uint256)',
@@ -476,7 +805,6 @@ const NFTManagePage = () => {
       
       const tokenContract = new ethers.Contract(tokenAddress, tokenAbi, signer);
       
-      // 3. 사용자 보유량 확인
       const balance = await tokenContract.balanceOf(userAddress);
       console.log('💰 내 보유량:', balance.toString());
       console.log('💰 필요량:', totalFractions.toString());
@@ -489,12 +817,10 @@ const NFTManagePage = () => {
         );
       }
       
-      // 4. Approve 확인
       const contractAddress = contract.target || await contract.getAddress();
       const allowance = await tokenContract.allowance(userAddress, contractAddress);
       console.log('✅ 현재 Allowance:', allowance.toString());
       
-      // 5. Approve가 필요하면 먼저 실행
       if (allowance < totalFractions) {
         console.log('⚠️ Approve 필요, 진행 중...');
         const approveTx = await tokenContract.approve(contractAddress, totalFractions);
@@ -503,7 +829,6 @@ const NFTManagePage = () => {
         console.log('✅ Approve 완료!');
       }
       
-      // 6. 재결합 실행
       console.log('🔄 NFT 재결합 시작...');
       const tx = await contract.redeemNFT(nft.tokenId);
       
@@ -750,6 +1075,7 @@ const NFTManagePage = () => {
 
   const isSoulbound = nft.type === 'soulbound';
   const isFractional = nft.type === 'fractional';
+  const isDynamic = nft.type === 'dynamic';
 
   return (
     <div className="manage-page">
@@ -800,8 +1126,17 @@ const NFTManagePage = () => {
         </div>
       )}
 
+      {isDynamic && (
+        <div className="info-banner success">
+          🔄 Dynamic NFT입니다! 메타데이터와 이미지를 동적으로 변경할 수 있습니다.
+        </div>
+      )}
+
       <div className="tabs-container">
         <div className="tabs">
+          {isDynamic && (
+            <button className={`tab ${activeTab === 'dynamicManage' ? 'active' : ''}`} onClick={() => setActiveTab('dynamicManage')}>🔄 메타데이터 관리</button>
+          )}
           {isFractional && !isFractionalized && (
             <button className={`tab ${activeTab === 'fractionalize' ? 'active' : ''}`} onClick={() => setActiveTab('fractionalize')}>분할(Split)</button>
           )}
@@ -822,6 +1157,15 @@ const NFTManagePage = () => {
         </div>
 
         <div className="tab-content">
+          {activeTab === 'dynamicManage' && isDynamic && (
+            <DynamicNFTManager 
+              nft={nft} 
+              provider={provider}
+              onSuccess={handleSuccess}
+              onError={handleError}
+            />
+          )}
+
           {activeTab === 'transfer' && !isSoulbound && !isFractionalized && (
             <div className="action-form">
               <div className="form-group">

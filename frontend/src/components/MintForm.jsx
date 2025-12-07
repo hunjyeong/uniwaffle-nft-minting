@@ -14,7 +14,12 @@ const MintForm = () => {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [recipientAddress, setRecipientAddress] = useState('');
-  
+
+  const [metadataFields, setMetadataFields] = useState([
+    { id: 1, fieldName: '', value: '' },
+    { id: 2, fieldName: '', value: '' }
+  ]);
+
   const [isMinting, setIsMinting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState('');
   const [mintResult, setMintResult] = useState(null);
@@ -44,6 +49,48 @@ const MintForm = () => {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  // 필드 추가
+  const addField = () => {
+    setMetadataFields([
+      ...metadataFields,
+      { id: Date.now(), fieldName: '', value: '' }
+    ]);
+  };
+
+  // 필드명 변경
+  const updateFieldName = (id, newName) => {
+    setMetadataFields(
+      metadataFields.map(field =>
+        field.id === id ? { ...field, fieldName: newName } : field
+      )
+    );
+  };
+
+  // 값 변경
+  const updateFieldValue = (id, newValue) => {
+    setMetadataFields(
+      metadataFields.map(field =>
+        field.id === id ? { ...field, value: newValue } : field
+      )
+    );
+  };
+
+  // 필드 삭제
+  const removeField = (id) => {
+    setMetadataFields(metadataFields.filter(field => field.id !== id));
+  };
+
+  // 배열을 객체로 변환
+  const getMetadataObject = () => {
+    const obj = {};
+    metadataFields.forEach(field => {
+      if (field.fieldName.trim()) {
+        obj[field.fieldName] = field.value;
+      }
+    });
+    return obj;
   };
 
   const handleMint = async (e) => {
@@ -97,6 +144,7 @@ const MintForm = () => {
       setImageFile(null);
       setImagePreview(null);
       setRecipientAddress('');
+      setMetadataFields([]);
       
     } catch (err) {
       console.error('민팅 실패:', err);
@@ -214,6 +262,77 @@ const MintForm = () => {
             </div>
           )}
         </div>
+
+        {/* Dynamic NFT 메타데이터 입력 */}
+        {nftType === 'dynamic' && (
+          <div className="dynamic-metadata-section">
+            <h3>Dynamic 메타데이터</h3>
+            <p className="info-text">
+              필드명과 값을 자유롭게 입력하세요. 이 정보는 NFT 소유자가 나중에 수정할 수 있습니다.
+            </p>
+
+            {/* 필드 목록 */}
+            <div className="metadata-fields">
+              {metadataFields.map((field, index) => (
+                <div key={field.id} className="metadata-field-row">
+                  <div className="field-inputs">
+                    <div className="field-name-input">
+                      <label>필드</label>
+                      <input
+                        type="text"
+                        value={field.fieldName}
+                        onChange={(e) => updateFieldName(field.id, e.target.value)}
+                        placeholder={
+                          index === 0 ? "예: 주소" :
+                          index === 1 ? "예: 건축연도" :
+                          "예: 레벨"
+                        }
+                      />
+                    </div>
+                    <div className="field-value-input">
+                      <label>내용</label>
+                      <input
+                        type="text"
+                        value={field.value}
+                        onChange={(e) => updateFieldValue(field.id, e.target.value)}
+                        placeholder={
+                          index === 0 ? "예: 1001 Blockchain Rd." :
+                          index === 1 ? "예: 2022" :
+                          "값을 입력하세요"
+                        }
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      className="remove-field-btn"
+                      onClick={() => removeField(field.id)}
+                      title="필드 삭제"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* 필드 추가 버튼 */}
+            <button
+              type="button"
+              className="add-field-btn"
+              onClick={addField}
+            >
+              ➕ 필드 추가
+            </button>
+
+            {/* 메타데이터 미리보기 */}
+            {metadataFields.length > 0 && (
+              <div className="metadata-preview-box">
+                <h4>저장될 메타데이터</h4>
+                <pre>{JSON.stringify(getMetadataObject(), null, 2)}</pre>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="form-group">
           <label htmlFor="recipient">

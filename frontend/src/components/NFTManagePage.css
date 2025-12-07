@@ -296,6 +296,325 @@
   font-weight: 600;
 }
 
+/* ==================== Dynamic NFT 관리 ==================== */
+.manage-page .dynamic-nft-manager {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 600px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.manage-page .dynamic-nft-manager h3,
+.manage-page .dynamic-nft-manager h4 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  color: #212529;
+}
+
+/* 정보 박스 - 밝은 배경 */
+.manage-page .info-box {
+  background: #f8f9fa; 
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 0;
+}
+
+.manage-page .info-box h3 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  color: #212529; 
+}
+
+.manage-page .info-box h4 {
+  margin: 0 0 12px 0;
+  font-size: 15px;
+  color: #212529;
+}
+
+.manage-page .info-box p {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #495057;
+}
+
+.manage-page .info-box p:last-child {
+  margin-bottom: 0;
+}
+
+/* 메타데이터 표시 영역 */
+.manage-page .metadata-display,
+.manage-page .no-metadata {
+  background: white;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+  font-family: monospace;
+  font-size: 13px;
+  color: #495057;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.manage-page .no-metadata {
+  color: #868e96;
+  font-family: inherit;
+  text-align: center;
+  font-style: italic;
+}
+
+/* Dynamic 관리 폼들 */
+.manage-page .dynamic-nft-manager .action-form {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+  max-width: 100%;
+  margin-bottom: 0;
+}
+
+.manage-page .dynamic-nft-manager .action-form h4 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  color: #212529;
+}
+
+.manage-page .dynamic-nft-manager .info-text {
+  margin: 0 0 16px 0;
+  padding: 0;
+  font-size: 13px;
+  color: #495057;
+  line-height: 1.5;
+  background: none;
+  border: none;
+}
+
+/* 메타데이터 필드 관리 */
+.manage-page .metadata-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.manage-page .metadata-field-row {
+  background: white;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+}
+
+.manage-page .field-inputs {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.manage-page .field-name-input,
+.manage-page .field-value-input {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.manage-page .field-name-input label,
+.manage-page .field-value-input label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #495057;
+  margin: 0;
+}
+
+.manage-page .field-name-input input,
+.manage-page .field-value-input input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  font-size: 13px;
+  transition: all 0.2s;
+  box-sizing: border-box;
+  background: white;
+}
+
+.manage-page .field-name-input input:focus,
+.manage-page .field-value-input input:focus {
+  outline: none;
+  border-color: #4263eb;
+  box-shadow: 0 0 0 3px rgba(66, 99, 235, 0.1);
+}
+
+.manage-page .field-name-input input:disabled,
+.manage-page .field-value-input input:disabled {
+  background: #f8f9fa;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.manage-page .remove-field-btn {
+  background: #fa5252;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  height: 36px;
+  margin-bottom: 0;
+}
+
+.manage-page .remove-field-btn:hover:not(:disabled) {
+  background: #e03131;
+  transform: scale(1.05);
+}
+
+.manage-page .remove-field-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.manage-page .add-field-btn {
+  background: #4263eb;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s;
+  margin-bottom: 16px;
+  width: auto;
+  align-self: flex-start;
+}
+
+.manage-page .add-field-btn:hover:not(:disabled) {
+  background: #364fc7;
+  transform: translateY(-1px);
+}
+
+.manage-page .add-field-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 메타데이터 미리보기 박스 */
+.manage-page .metadata-preview-box {
+  background: white;
+  padding: 16px;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+  margin-bottom: 16px;
+}
+
+.manage-page .metadata-preview-box h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: #495057;
+  font-weight: 600;
+}
+
+.manage-page .metadata-preview-box pre {
+  margin: 0;
+  font-family: monospace;
+  font-size: 12px;
+  color: #212529;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.6;
+  background: #f8f9fa;
+  padding: 12px;
+  border-radius: 4px;
+}
+
+/* 메타데이터 히스토리 */
+.manage-page .metadata-history {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.manage-page .history-item {
+  background: white;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+}
+
+.manage-page .history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.manage-page .history-index {
+  font-weight: 600;
+  color: #4263eb;
+  font-size: 13px;
+}
+
+.manage-page .history-date {
+  font-size: 12px;
+  color: #868e96;
+}
+
+.manage-page .history-content {
+  margin: 0;
+  font-family: monospace;
+  font-size: 12px;
+  color: #495057;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.6;
+  background: #f8f9fa;
+  padding: 8px;
+  border-radius: 4px;
+}
+
+/* URI 히스토리 */
+.manage-page .uri-history {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.manage-page .uri-history-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+}
+
+.manage-page .history-uri {
+  font-family: monospace;
+  font-size: 12px;
+  color: #495057;
+  word-break: break-all;
+  line-height: 1.6;
+  background: #f8f9fa;
+  padding: 4px 8px;
+  border-radius: 4px;
+  flex: 1;
+}
+
 /* ==================== 탭 ==================== */
 .manage-page .tabs-container {
   background: white;
@@ -349,6 +668,7 @@
 
 .manage-page .form-group {
   margin-bottom: 20px;
+  width: 100%;
 }
 
 .manage-page .form-group label {
@@ -359,23 +679,35 @@
   font-size: 14px;
 }
 
-.manage-page .form-group input {
+.manage-page .form-group input,
+.manage-page .form-group textarea {
   width: 100%;
   padding: 12px;
   border: 2px solid #dee2e6;
   border-radius: 8px;
   font-size: 14px;
-  font-family: monospace;
   transition: all 0.2s;
   box-sizing: border-box;
 }
 
-.manage-page .form-group input:focus {
+.manage-page .form-group input {
+  font-family: monospace;
+}
+
+.manage-page .form-group textarea {
+  font-family: inherit;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.manage-page .form-group input:focus,
+.manage-page .form-group textarea:focus {
   outline: none;
   border-color: #4263eb;
 }
 
-.manage-page .form-group input:disabled {
+.manage-page .form-group input:disabled,
+.manage-page .form-group textarea:disabled {
   background: #f8f9fa;
   cursor: not-allowed;
   opacity: 0.6;
@@ -435,31 +767,6 @@
   padding: 2px 4px;
   border-radius: 3px;
   font-family: monospace;
-}
-
-.manage-page .info-box {
-  padding: 16px;
-  background: #e3f2fd;
-  border-radius: 8px;
-  color: #1565c0;
-  border: 1px solid #90caf9;
-  margin-bottom: 20px;
-}
-
-.manage-page .info-box h3 {
-  margin: 0 0 12px 0;
-  font-size: 16px;
-  color: #0d47a1;
-}
-
-.manage-page .info-box p {
-  margin: 0 0 8px 0;
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-.manage-page .info-box p:last-child {
-  margin-bottom: 0;
 }
 
 /* 참고 노트 (조각 전송용) */
@@ -524,6 +831,18 @@
 .manage-page .action-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* 기본 버튼 (Dynamic NFT 관리용) */
+.manage-page .dynamic-nft-manager .action-button {
+  background: #4263eb;
+  color: white;
+}
+
+.manage-page .dynamic-nft-manager .action-button:hover:not(:disabled) {
+  background: #364fc7;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(66, 99, 235, 0.3);
 }
 
 /* 전송 버튼 */
@@ -880,5 +1199,33 @@
   .manage-page .token-info-content .token-address {
     width: 100%;
     word-break: break-all;
+  }
+
+  /* Dynamic NFT 반응형 */
+  .manage-page .dynamic-nft-manager {
+    max-width: 100%;
+  }
+
+  .manage-page .dynamic-nft-manager .action-form {
+    padding: 16px;
+  }
+
+  .manage-page .field-inputs {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .manage-page .remove-field-btn {
+    width: 100%;
+    margin-top: 8px;
+  }
+
+  .manage-page .add-field-btn {
+    width: 100%;
+  }
+
+  .manage-page .uri-history-item {
+    flex-direction: column;
+    gap: 8px;
   }
 }

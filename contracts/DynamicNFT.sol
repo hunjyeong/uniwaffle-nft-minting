@@ -8,8 +8,8 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 
 /**
  * @title DynamicNFT
- * @dev NFT의 메타데이터(이미지, 속성)를 동적으로 변경할 수 있는 컨트랙트
- * 사용 사례: 레벨업 게임 아이템, 시간/조건에 따라 진화하는 캐릭터, 외부 데이터 반영
+ * @dev 사용자가 정의한 메타데이터를 JSON 문자열로 저장/수정 가능한 Dynamic NFT
+ * 사용 사례: 부동산, 증명서, 게임 아이템 등 다양한 용도로 활용 가능
  */
 contract DynamicNFT is ERC721URIStorage, ERC721Enumerable, Ownable {
     using Strings for uint256;
@@ -21,25 +21,17 @@ contract DynamicNFT is ERC721URIStorage, ERC721Enumerable, Ownable {
     uint256 public mintPrice;
     bool public mintingPaused = false;
     
-    // 동적 속성 관리
-    struct TokenAttributes {
-        uint256 level;          // 레벨
-        uint256 experience;     // 경험치
-        uint256 power;          // 파워
-        uint256 lastUpdated;    // 마지막 업데이트 시간
-        string status;          // 상태 (예: "active", "evolved")
-    }
+    // ✅ 사용자 정의 메타데이터를 JSON 문자열로 저장
+    mapping(uint256 => string) public tokenMetadata;
     
-    mapping(uint256 => TokenAttributes) public tokenAttributes;
-    mapping(uint256 => string[]) private tokenURIHistory; // URI 변경 이력
+    // 메타데이터 변경 이력
+    mapping(uint256 => string[]) public metadataHistory;
     
-    // 권한 관리 (게임 서버 등이 속성 업데이트 가능)
-    mapping(address => bool) public authorizedUpdaters;
+    // URI 변경 이력 (기존 기능 유지)
+    mapping(uint256 => string[]) private tokenURIHistory;
     
-    event AttributesUpdated(uint256 indexed tokenId, uint256 level, uint256 experience, uint256 power);
-    event TokenEvolved(uint256 indexed tokenId, uint256 newLevel, string newURI);
+    event MetadataUpdated(uint256 indexed tokenId, string newMetadata, address updatedBy);
     event URIUpdated(uint256 indexed tokenId, string newURI);
-    event UpdaterAuthorized(address indexed updater, bool status);
     
     constructor(
         string memory name,
@@ -53,16 +45,22 @@ contract DynamicNFT is ERC721URIStorage, ERC721Enumerable, Ownable {
         mintPrice = _mintPrice;
     }
     
-    modifier onlyAuthorized() {
-        require(authorizedUpdaters[msg.sender] || msg.sender == owner(), "Not authorized");
-        _;
-    }
-    
     // ========================================
     // 민팅 함수
     // ========================================
     
-    function mint(address to) external payable returns (uint256) {
+    /**
+     * @dev 일반 민팅 함수 (메타데이터 포함)
+     * @param to 받는 주소
+     * @param initialURI 초기 토큰 URI (이미지 등)
+     * @param initialMetadata 초기 메타데이터 JSON 문자열
+     * 예시: '{"주소":"1001 Blockchain Rd.","건축연도":"2022","면적":"150m²","유지보수이력":"None","판매이력":"2021 / $400,000"}'
+     */
+    function mint(
+        address to, 
+        string calldata initialURI,
+        string calldata initialMetadata
+    ) external payable returns (uint256) {
         require(!mintingPaused, "Minting is paused");
         require(_tokenIdCounter < maxSupply || maxSupply == 0, "Max supply reached");
         require(msg.value >= mintPrice, "Insufficient payment");
@@ -70,113 +68,58 @@ contract DynamicNFT is ERC721URIStorage, ERC721Enumerable, Ownable {
         uint256 tokenId = _tokenIdCounter++;
         _safeMint(to, tokenId);
         
-        // 초기 속성 설정
-        tokenAttributes[tokenId] = TokenAttributes({
-            level: 1,
-            experience: 0,
-            power: 10,
-            lastUpdated: block.timestamp,
-            status: "newborn"
-        });
+        // URI 설정
+        if (bytes(initialURI).length > 0) {
+            _setTokenURI(tokenId, initialURI);
+        }
         
-        if (msg.value > mintPrice) {
+        // ✅ 메타데이터 저장
+        if (bytes(initialMetadata).length > 0) {
+            tokenMetadata[tokenId] = initialMetadata;
+        }
+        
+        // 환불 처리
+        if (mintPrice > 0 && msg.value > mintPrice) {
             payable(msg.sender).transfer(msg.value - mintPrice);
         }
         
         return tokenId;
     }
     
-    function mintWithAttributes(
-        address to,
-        uint256 level,
-        uint256 power,
-        string memory status
-    ) external onlyOwner returns (uint256) {
-        require(!mintingPaused, "Minting is paused");
-        require(_tokenIdCounter < maxSupply || maxSupply == 0, "Max supply reached");
-        
-        uint256 tokenId = _tokenIdCounter++;
-        _safeMint(to, tokenId);
-        
-        tokenAttributes[tokenId] = TokenAttributes({
-            level: level,
-            experience: 0,
-            power: power,
-            lastUpdated: block.timestamp,
-            status: status
-        });
-        
-        return tokenId;
-    }
-    
     // ========================================
-    // 동적 속성 업데이트 함수
+    // 메타데이터 수정 함수 (소유자만 가능)
     // ========================================
     
-    function updateAttributes(
-        uint256 tokenId,
-        uint256 level,
-        uint256 experience,
-        uint256 power
-    ) external onlyAuthorized {
+    /**
+     * @dev 메타데이터 업데이트 (소유자만 가능)
+     * @param tokenId 토큰 ID
+     * @param newMetadata 새로운 메타데이터 JSON 문자열
+     */
+    function updateMetadata(uint256 tokenId, string calldata newMetadata) external {
         require(_ownerOf(tokenId) != address(0), "Token does not exist");
+        require(ownerOf(tokenId) == msg.sender, "Not owner");
         
-        TokenAttributes storage attrs = tokenAttributes[tokenId];
-        attrs.level = level;
-        attrs.experience = experience;
-        attrs.power = power;
-        attrs.lastUpdated = block.timestamp;
-        
-        emit AttributesUpdated(tokenId, level, experience, power);
-    }
-    
-    function addExperience(uint256 tokenId, uint256 exp) external onlyAuthorized {
-        require(_ownerOf(tokenId) != address(0), "Token does not exist");
-        
-        TokenAttributes storage attrs = tokenAttributes[tokenId];
-        attrs.experience += exp;
-        attrs.lastUpdated = block.timestamp;
-        
-        // 자동 레벨업 (100 경험치당 1레벨)
-        uint256 newLevel = 1 + (attrs.experience / 100);
-        if (newLevel > attrs.level) {
-            attrs.level = newLevel;
-            attrs.power += 10 * (newLevel - attrs.level);
+        // 이전 메타데이터를 히스토리에 저장
+        if (bytes(tokenMetadata[tokenId]).length > 0) {
+            metadataHistory[tokenId].push(tokenMetadata[tokenId]);
         }
         
-        emit AttributesUpdated(tokenId, attrs.level, attrs.experience, attrs.power);
-    }
-    
-    function setStatus(uint256 tokenId, string memory status) external onlyAuthorized {
-        require(_ownerOf(tokenId) != address(0), "Token does not exist");
-        tokenAttributes[tokenId].status = status;
-        tokenAttributes[tokenId].lastUpdated = block.timestamp;
+        // 새 메타데이터 저장
+        tokenMetadata[tokenId] = newMetadata;
+        
+        emit MetadataUpdated(tokenId, newMetadata, msg.sender);
     }
     
     // ========================================
-    // URI 동적 변경 (진화, 레벨업 등)
+    // URI 변경 함수 (소유자만 가능)
     // ========================================
     
-    function evolveToken(uint256 tokenId, string memory newURI) external onlyAuthorized {
+    /**
+     * @dev 토큰 URI 업데이트 (이미지 변경 등)
+     */
+    function updateTokenURI(uint256 tokenId, string memory newURI) external {
         require(_ownerOf(tokenId) != address(0), "Token does not exist");
-        
-        // 이전 URI 저장
-        string memory oldURI = tokenURI(tokenId);
-        if (bytes(oldURI).length > 0) {
-            tokenURIHistory[tokenId].push(oldURI);
-        }
-        
-        // 새 URI 설정
-        _setTokenURI(tokenId, newURI);
-        
-        TokenAttributes storage attrs = tokenAttributes[tokenId];
-        attrs.lastUpdated = block.timestamp;
-        
-        emit TokenEvolved(tokenId, attrs.level, newURI);
-    }
-    
-    function updateTokenURI(uint256 tokenId, string memory newURI) external onlyAuthorized {
-        require(_ownerOf(tokenId) != address(0), "Token does not exist");
+        require(ownerOf(tokenId) == msg.sender, "Not owner");
         
         string memory oldURI = tokenURI(tokenId);
         if (bytes(oldURI).length > 0) {
@@ -191,21 +134,31 @@ contract DynamicNFT is ERC721URIStorage, ERC721Enumerable, Ownable {
     // 조회 함수
     // ========================================
     
-    function getAttributes(uint256 tokenId) external view returns (
-        uint256 level,
-        uint256 experience,
-        uint256 power,
-        uint256 lastUpdated,
-        string memory status
-    ) {
-        TokenAttributes memory attrs = tokenAttributes[tokenId];
-        return (attrs.level, attrs.experience, attrs.power, attrs.lastUpdated, attrs.status);
+    /**
+     * @dev 메타데이터 조회
+     */
+    function getMetadata(uint256 tokenId) external view returns (string memory) {
+        require(_ownerOf(tokenId) != address(0), "Token does not exist");
+        return tokenMetadata[tokenId];
     }
     
+    /**
+     * @dev 메타데이터 변경 이력 조회
+     */
+    function getMetadataHistory(uint256 tokenId) external view returns (string[] memory) {
+        return metadataHistory[tokenId];
+    }
+    
+    /**
+     * @dev URI 변경 이력 조회
+     */
     function getURIHistory(uint256 tokenId) external view returns (string[] memory) {
         return tokenURIHistory[tokenId];
     }
     
+    /**
+     * @dev 특정 주소가 소유한 모든 토큰 ID 조회
+     */
     function tokensOfOwner(address owner) external view returns (uint256[] memory) {
         uint256 tokenCount = balanceOf(owner);
         uint256[] memory tokenIds = new uint256[](tokenCount);
@@ -218,13 +171,8 @@ contract DynamicNFT is ERC721URIStorage, ERC721Enumerable, Ownable {
     }
     
     // ========================================
-    // 권한 관리
+    // 관리자 함수
     // ========================================
-    
-    function setAuthorizedUpdater(address updater, bool status) external onlyOwner {
-        authorizedUpdaters[updater] = status;
-        emit UpdaterAuthorized(updater, status);
-    }
     
     function pauseMinting(bool paused) external onlyOwner {
         mintingPaused = paused;
@@ -241,7 +189,8 @@ contract DynamicNFT is ERC721URIStorage, ERC721Enumerable, Ownable {
     function withdraw() external onlyOwner {
         uint256 balance = address(this).balance;
         require(balance > 0, "No balance to withdraw");
-        payable(owner()).transfer(balance);
+        (bool success, ) = payable(owner()).call{value: balance}("");
+        require(success, "Transfer failed");
     }
     
     // ========================================
@@ -285,9 +234,5 @@ contract DynamicNFT is ERC721URIStorage, ERC721Enumerable, Ownable {
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
-    }
-    
-    function totalSupply() public view override returns (uint256) {
-        return _tokenIdCounter;
     }
 }
