@@ -125,7 +125,7 @@ export const getContract = async (provider, nftType) => {
 /**
  * EVM 체인에서 NFT 민팅
  */
-export const mintEvmNFT = async (provider, nftType, recipientAddress, tokenURI) => {
+export const mintEvmNFT = async (provider, nftType, recipientAddress, tokenURI, metadata = '') => {
   try {
     const signer = await provider.getSigner();
     const network = await provider.getNetwork();
@@ -144,6 +144,7 @@ export const mintEvmNFT = async (provider, nftType, recipientAddress, tokenURI) 
       nftType,
       recipient: recipientAddress,
       tokenURI,
+      metadata,
       contractAddress
     });
     
@@ -154,16 +155,29 @@ export const mintEvmNFT = async (provider, nftType, recipientAddress, tokenURI) 
       // FractionalNFT는 mint(address, string) 함수 사용
       console.log('mint 함수 호출 중 (fractional)...');
       tx = await contract.mint(recipientAddress, tokenURI);
+      
     } else if (nftType === 'dynamic') {
-      // DynamicNFT는 mint(address, string) 함수 사용
       console.log('mint 함수 호출 중 (dynamic)...');
+      console.log('- recipient:', recipientAddress);
+      console.log('- tokenURI:', tokenURI);
+      console.log('- metadata:', metadata || '{}');
+      
       const mintPrice = await contract.mintPrice();
-      tx = await contract.mint(recipientAddress, tokenURI, { value: mintPrice });
+      console.log('- mintPrice:', ethers.formatEther(mintPrice), 'ETH');
+      
+      tx = await contract.mint(
+        recipientAddress,           // 1️⃣ address to
+        tokenURI,                   // 2️⃣ string initialURI
+        metadata || '{}',           // 3️⃣ string initialMetadata
+        { value: mintPrice }        // 4️⃣ payable value
+      );
+      
     } else if (nftType === 'composable') {
       // ComposableNFT는 mintParent 또는 mintChild 사용
       console.log('mintParent 함수 호출 중 (composable)...');
       const mintPrice = await contract.mintPrice();
       tx = await contract.mintParent(recipientAddress, "default", { value: mintPrice });
+      
     } else {
       // Native, Soulbound는 mintWithURI 사용
       console.log('mintWithURI 함수 호출 중...');
@@ -467,31 +481,90 @@ export const getEvmNFTs = async (provider, ownerAddress, nftType) => {
         let tokenURI = '';
         try {
           tokenURI = await contract.tokenURI(tokenId);
+          // console.log('🔗 Raw tokenURI:', tokenURI); // 원본 확인
+          
+          tokenURI = tokenURI.replace(/ipfs:\/+/g, '');
+          
+          if (!tokenURI.startsWith('http')) {
+            // Qm 또는 bafy로 시작하는 해시만 추출
+            const hashMatch = tokenURI.match(/(Qm[a-zA-Z0-9]{44,}|bafy[a-zA-Z0-9]{50,})/);
+            if (hashMatch) {
+              tokenURI = `https://gateway.pinata.cloud/ipfs/${hashMatch[0]}`;
+            }
+          }
+          
+          // console.log('✅ 변환된 tokenURI:', tokenURI);
         } catch {
           console.warn(`Token ${tokenId} URI 없음`);
         }
         
         let metadata = { name: `Token #${tokenId}` };
         
-        if (tokenURI) {
+        // Dynamic NFT: 컨트랙트에서 메타데이터 가져오기
+        if (nftType === 'dynamic') {
+          try {
+            const onChainMetadata = await contract.getMetadata(tokenId);
+            const parsed = JSON.parse(onChainMetadata);
+            metadata = { name: `Token #${tokenId}`, description: 'Dynamic NFT', ...parsed };
+            
+            // tokenURI가 이미지 URL인 경우 추가
+            if (tokenURI) {
+              // console.log('Dynamic NFT tokenURI:', tokenURI); // 디버깅용
+      
+              let imageUrl = tokenURI;
+              
+              // ipfs 프로토콜 완전 제거
+              imageUrl = imageUrl.replace(/\/ipfs\/ipfs:\/+/g, '/ipfs/');
+              imageUrl = imageUrl.replace(/ipfs:\/+/g, '');
+              
+              // console.log('변환된 imageUrl:', imageUrl); // 디버깅용
+              
+              // 이미 완전한 URL이면 그대로
+              if (imageUrl.startsWith('https://') || imageUrl.startsWith('http://')) {
+                metadata.image = imageUrl;
+              }
+              // IPFS 해시만 있는 경우
+              else {
+                metadata.image = `https://gateway.pinata.cloud/ipfs/${imageUrl}`;
+              }
+              
+              // console.log('최종 image URL:', metadata.image); // 디버깅용
+            }
+          } catch (err) {
+            console.warn(`Dynamic NFT #${tokenId} 메타데이터 로드 실패:`, err);
+          }
+        }
+        // 다른 NFT 타입: tokenURI에서 메타데이터 fetch
+        else if (tokenURI) {
           try {
             let url = tokenURI;
-
             url = url.replace(/ipfs:\/\//g, '');
-
             const ipfsHashMatch = url.match(/(Qm[a-zA-Z0-9]{44,}|bafy[a-zA-Z0-9]{50,})/);
             if (ipfsHashMatch) {
               url = 'https://gateway.pinata.cloud/ipfs/' + ipfsHashMatch[0];
             } else if (url.startsWith('http://') || url.startsWith('https://')) {
               // 이미 완전한 URL이면 그대로
             } else {
-              // 그 외의 경우
               url = 'https://gateway.pinata.cloud/ipfs/' + url;
             }
             
             const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
             if (response.ok) {
               metadata = await response.json();
+              
+              if (metadata.image) {
+                let imageUrl = metadata.image;
+                
+                // ipfs:// 제거
+                if (imageUrl.startsWith('ipfs://')) {
+                  imageUrl = imageUrl.replace('ipfs://', '');
+                  metadata.image = `https://gateway.pinata.cloud/ipfs/${imageUrl}`;
+                }
+                // 이미 http URL이면 그대로
+                else if (!imageUrl.startsWith('http')) {
+                  metadata.image = `https://gateway.pinata.cloud/ipfs/${imageUrl}`;
+                }
+              }
             }
           } catch {}
         }

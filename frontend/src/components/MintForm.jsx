@@ -116,23 +116,39 @@ const MintForm = () => {
     setError(null);
     setMintResult(null);
     setUploadProgress('');
+    
+    let uploadResult = null;
 
     try {
-      setUploadProgress('이미지를 IPFS에 업로드 중...');
-      const tokenURI = await uploadNFT(imageFile, name, description);
+      // 1단계: 이미지를 로컬 폴더 및 Pinata IPFS에 업로드
+      setUploadProgress('이미지를 로컬 폴더 및 Pinata IPFS에 업로드 중...');
+      console.log('📤 업로드 시작 - 로컬 저장 + Pinata 업로드');
       
-      setUploadProgress('업로드 완료! 민팅 중...');
+      // Dynamic NFT의 경우 메타데이터 포함하여 업로드
+      const additionalMetadata = nftType === 'dynamic' ? getMetadataObject() : null;
+      uploadResult = await uploadNFT(imageFile, name, description, additionalMetadata);
+      
+      console.log('✅ 업로드 완료 - TokenURI:', uploadResult.tokenURI);
+      console.log('💾 타임스탬프:', uploadResult.timestamp);
+      
+      // 2단계: 블록체인에 민팅
+      setUploadProgress('업로드 완료! 블록체인에 민팅 중...');
       
       let result;
       if (currentChain?.type === CHAIN_TYPES.EVM) {
-        result = await mintEvmNFT(provider, nftType, recipient, tokenURI);
+        const metadata = nftType === 'dynamic' 
+          ? JSON.stringify(additionalMetadata) 
+          : '';
+        result = await mintEvmNFT(provider, nftType, recipient, uploadResult.tokenURI, metadata);
       } else {
         throw new Error('지원하지 않는 블록체인입니다.');
       }
       
+      console.log('✅ 민팅 완료! Token ID:', result.tokenId);
+      
       setMintResult({
         ...result,
-        tokenURI,
+        tokenURI: uploadResult.tokenURI,
         recipient,
         nftType,
         chain: currentChain.name
@@ -146,8 +162,10 @@ const MintForm = () => {
       setRecipientAddress('');
       setMetadataFields([]);
       
+      console.log('🎉 민팅 완료!', result);
+      
     } catch (err) {
-      console.error('민팅 실패:', err);
+      console.error('❌ 민팅 실패:', err);
       setError(err.message || '민팅에 실패했습니다.');
       setUploadProgress('');
     } finally {
@@ -283,9 +301,9 @@ const MintForm = () => {
                         value={field.fieldName}
                         onChange={(e) => updateFieldName(field.id, e.target.value)}
                         placeholder={
-                          index === 0 ? "예: 주소" :
-                          index === 1 ? "예: 건축연도" :
-                          "예: 레벨"
+                          index === 0 ? "예: 전공" :
+                          index === 1 ? "예: 졸업연도" :
+                          "필드를 입력하세요"
                         }
                       />
                     </div>
@@ -296,8 +314,8 @@ const MintForm = () => {
                         value={field.value}
                         onChange={(e) => updateFieldValue(field.id, e.target.value)}
                         placeholder={
-                          index === 0 ? "예: 1001 Blockchain Rd." :
-                          index === 1 ? "예: 2022" :
+                          index === 0 ? "예: 컴퓨터공학" :
+                          index === 1 ? "예: 2025" :
                           "값을 입력하세요"
                         }
                       />
@@ -363,7 +381,7 @@ const MintForm = () => {
         {mintResult && (
           <div className="success-message">
             <h3>민팅 성공!</h3>
-            <p><strong>NFT 타입:</strong> {[mintResult.nftType]}</p>
+            <p><strong>NFT 타입:</strong> {mintResult.nftType}</p>
             <p><strong>체인:</strong> {mintResult.chain}</p>
             {mintResult.tokenId && (
               <p><strong>Token ID:</strong> {mintResult.tokenId}</p>

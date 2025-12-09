@@ -1,8 +1,92 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
 import { transferNFT, burnNFT, getContract } from '../utils/EVMcontract';
+import { uploadImageToPinata } from '../utils/ipfs.js';
+import axios from 'axios';
 import './NFTDisplay.css';
 import './NFTManagePage.css';
+
+// 백엔드 API URL
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+
+// IPFS URL을 ipfs.io로 변환
+const convertIpfsUrl = (url) => {
+  if (!url) return '';
+  
+  // 이미 HTTP/HTTPS URL이면 ipfs.io로 변환
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    if (url.includes('ipfs.io')) {
+      return url;
+    }
+    // 다른 게이트웨이면 해시 추출 후 ipfs.io로 변환
+    const hashMatch = url.match(/(Qm[a-zA-Z0-9]{44,}|bafy[a-zA-Z0-9]{50,})/);
+    if (hashMatch) {
+      return `https://ipfs.io/ipfs/${hashMatch[0]}`;
+    }
+    return url;
+  }
+  
+  // ipfs:// 프로토콜 제거하고 ipfs.io 사용
+  if (url.startsWith('ipfs://')) {
+    const hash = url.replace('ipfs://', '');
+    return `https://ipfs.io/ipfs/${hash}`;
+  }
+  
+  // Qm 또는 bafy로 시작하는 해시
+  if (url.startsWith('Qm') || url.startsWith('bafy')) {
+    return `https://ipfs.io/ipfs/${url}`;
+  }
+  
+  return url;
+};
+
+// 로컬 또는 IPFS에서 메타데이터 가져오기
+const fetchNFTMetadata = async (tokenURI) => {
+  if (!tokenURI) return null;
+  
+  try {
+    // 1. tokenURI에서 IPFS 해시 추출
+    let hash = '';
+    
+    if (tokenURI.startsWith('ipfs://')) {
+      hash = tokenURI.replace('ipfs://', '');
+    } else if (tokenURI.includes('/ipfs/')) {
+      const match = tokenURI.match(/\/ipfs\/([^/?]+)/);
+      hash = match ? match[1] : '';
+    } else if (tokenURI.match(/^Qm[a-zA-Z0-9]{44,}|^bafy[a-zA-Z0-9]{50,}/)) {
+      hash = tokenURI;
+    }
+    
+    if (!hash) {
+      console.error('❌ IPFS 해시 추출 실패:', tokenURI);
+      return null;
+    }
+    
+    // 2. 로컬에서 먼저 시도
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/api/nft/nft-metadata/${hash}`,
+        { timeout: 3000 }
+      );
+      
+      if (response.data.success) {
+        console.log('✅ 로컬에서 메타데이터 로드');
+        return response.data.metadata;
+      }
+    } catch (localError) {
+      console.log('⚠️ 로컬에 없음, IPFS에서 가져옴');
+    }
+    
+    // 3. 로컬에 없으면 ipfs.io에서
+    const ipfsUrl = `https://ipfs.io/ipfs/${hash}`;
+    const response = await axios.get(ipfsUrl, { timeout: 10000 });
+    return response.data;
+    
+  } catch (error) {
+    console.error('❌ 메타데이터 로드 실패:', error);
+    return null;
+  }
+};
 
 // 분할 토큰 정보 컴포넌트
 const FractionTokenInfo = ({ nft, provider }) => {
@@ -131,6 +215,11 @@ const DynamicNFTManager = ({ nft, provider, onSuccess, onError }) => {
   const [newTokenURI, setNewTokenURI] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // 이미지 업로드 관련 state 추가
+  const [newImageFile, setNewImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+
   // 메타데이터 필드 상태
   const [metadataFields, setMetadataFields] = useState([
     { id: 1, fieldName: '', value: '' },
@@ -229,6 +318,33 @@ const DynamicNFTManager = ({ nft, provider, onSuccess, onError }) => {
     return obj;
   };
 
+  // 이미지 파일 선택 핸들러
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        onError('이미지 크기는 5MB 이하여야 합니다.');
+        return;
+      }
+      
+      setNewImageFile(file);
+      setNewTokenURI(''); // URI 입력 초기화
+      
+      // 미리보기 생성
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // 이미지 파일 제거
+  const handleRemoveImage = () => {
+    setNewImageFile(null);
+    setImagePreview(null);
+  };
+
   // 메타데이터 업데이트
   const handleUpdateMetadata = async () => {
     const metadataObj = getMetadataObject();
@@ -260,23 +376,78 @@ const DynamicNFTManager = ({ nft, provider, onSuccess, onError }) => {
     }
   };
 
-  // URI 업데이트
+  // URI 업데이트 (이미지 파일 또는 직접 URI)
   const handleUpdateTokenURI = async () => {
-    if (!newTokenURI) {
-      onError('새 Token URI를 입력해주세요.');
+    if (!newTokenURI && !newImageFile) {
+      onError('새 Token URI를 입력하거나 이미지 파일을 선택해주세요.');
       return;
     }
 
     setIsProcessing(true);
+    setUploadingImage(false);
+    
     try {
+      let finalURI = newTokenURI;
+      
+      // 이미지 파일이 있으면 IPFS에 업로드
+      if (newImageFile) {
+        setUploadingImage(true);
+        
+        try {
+          finalURI = await uploadImageToPinata(newImageFile);
+          console.log('✅ 이미지 IPFS 업로드 완료:', finalURI);
+        } catch (uploadError) {
+          console.error('❌ IPFS 업로드 실패:', uploadError);
+          throw new Error('이미지 업로드에 실패했습니다. 다시 시도해주세요.');
+        }
+        
+        setUploadingImage(false);
+      }
+
+      // 온체인 업데이트
       const contract = await getContract(provider, 'dynamic');
-      const tx = await contract.updateTokenURI(nft.tokenId, newTokenURI);
+      const tx = await contract.updateTokenURI(nft.tokenId, finalURI);
       const receipt = await tx.wait();
       
+      // ✨ 로컬 메타데이터도 업데이트
+      try {
+        // 구 tokenURI에서 해시 추출
+        const oldHash = nft.tokenURI.replace('ipfs://', '').replace(/^https?:\/\/.*\/ipfs\//, '');
+        
+        // 새 tokenURI에서 해시 추출
+        const newHash = finalURI.replace('ipfs://', '');
+        
+        // 새 메타데이터 생성
+        const updatedMetadata = {
+          ...nft.metadata,
+          image: `https://ipfs.io/ipfs/${newHash}` // 또는 finalURI 그대로
+        };
+
+        // 백엔드에 업데이트 요청
+        await axios.put(
+          `${API_BASE_URL}/api/nft/nft-metadata/${oldHash}`,
+          {
+            newMetadata: updatedMetadata,
+            newHash: newHash
+          },
+          { timeout: 5000 }
+        );
+        
+        console.log('✅ 로컬 메타데이터 업데이트 완료');
+      } catch (localError) {
+        console.warn('⚠️ 로컬 메타데이터 업데이트 실패 (온체인은 성공):', localError);
+      }
+    
       onSuccess('Token URI가 업데이트되었습니다! 새로고침하면 변경사항을 확인할 수 있습니다.', receipt.hash);
+    
+      // 초기화
       setNewTokenURI('');
+      setNewImageFile(null);
+      setImagePreview(null);
+      
       await loadURIHistory();
       window.opener?.postMessage({ type: 'NFT_UPDATED' }, '*');
+      
     } catch (err) {
       console.error('URI 업데이트 실패:', err);
       if (err.message.includes('Not owner')) {
@@ -286,6 +457,7 @@ const DynamicNFTManager = ({ nft, provider, onSuccess, onError }) => {
       }
     } finally {
       setIsProcessing(false);
+      setUploadingImage(false);
     }
   };
 
@@ -297,7 +469,7 @@ const DynamicNFTManager = ({ nft, provider, onSuccess, onError }) => {
     <div className="dynamic-nft-manager">
       {/* 현재 메타데이터 표시 */}
       <div className="info-box">
-        <h3>📊 현재 메타데이터</h3>
+        <h3>현재 메타데이터</h3>
         {metadata ? (
           <pre className="metadata-display">{metadata}</pre>
         ) : (
@@ -307,7 +479,7 @@ const DynamicNFTManager = ({ nft, provider, onSuccess, onError }) => {
 
       {/* 메타데이터 편집 폼 */}
       <div className="action-form">
-        <h4>✏️ 메타데이터 편집</h4>
+        <h4>메타데이터 편집</h4>
         <p className="info-text">
           필드명과 값을 자유롭게 입력하세요. JSON 형식으로 저장됩니다.
         </p>
@@ -324,9 +496,9 @@ const DynamicNFTManager = ({ nft, provider, onSuccess, onError }) => {
                     value={field.fieldName}
                     onChange={(e) => updateFieldName(field.id, e.target.value)}
                     placeholder={
-                      index === 0 ? "예: 주소" :
-                      index === 1 ? "예: 건축연도" :
-                      "예: 레벨"
+                      index === 0 ? "예: 전공" :
+                      index === 1 ? "예: 졸업연도" :
+                      "필드를 입력하세요"
                     }
                     disabled={isProcessing}
                   />
@@ -338,8 +510,8 @@ const DynamicNFTManager = ({ nft, provider, onSuccess, onError }) => {
                     value={field.value}
                     onChange={(e) => updateFieldValue(field.id, e.target.value)}
                     placeholder={
-                      index === 0 ? "예: 1001 Blockchain Rd." :
-                      index === 1 ? "예: 2022" :
+                      index === 0 ? "예: 컴퓨터공학" :
+                      index === 1 ? "예: 2025" :
                       "값을 입력하세요"
                     }
                     disabled={isProcessing}
@@ -382,14 +554,14 @@ const DynamicNFTManager = ({ nft, provider, onSuccess, onError }) => {
           className="action-button"
           disabled={isProcessing}
         >
-          {isProcessing ? '업데이트 중...' : '💾 메타데이터 저장'}
+          {isProcessing ? '업데이트 중...' : '메타데이터 저장'}
         </button>
       </div>
 
       {/* 메타데이터 히스토리 */}
       {metadataHistory.length > 0 && (
         <div className="info-box">
-          <h4>📜 메타데이터 변경 히스토리</h4>
+          <h4>메타데이터 변경 히스토리</h4>
           <div className="metadata-history">
             {metadataHistory.map((meta, index) => (
               <div key={index} className="history-item">
@@ -406,31 +578,114 @@ const DynamicNFTManager = ({ nft, provider, onSuccess, onError }) => {
 
       {/* 이미지/URI 변경 */}
       <div className="action-form">
-        <h4>🖼️ 이미지 변경 (Token URI)</h4>
+        <h4>이미지 변경 (Token URI)</h4>
+        
+        {/* 이미지 파일 업로드 옵션 */}
         <div className="form-group">
-          <label>새 Token URI</label>
+          <label>새 이미지 파일 업로드</label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleImageChange}
+            disabled={isProcessing}
+          />
+          <small>이미지를 선택하면 자동으로 IPFS에 업로드됩니다 (5MB 이하)</small>
+        </div>
+
+        {/* 이미지 미리보기 */}
+        {imagePreview && (
+          <div style={{ 
+            marginBottom: '16px', 
+            padding: '12px', 
+            background: 'white', 
+            borderRadius: '8px',
+            border: '1px solid #dee2e6'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span style={{ fontSize: '13px', color: '#495057', fontWeight: '600' }}>미리보기</span>
+              <button
+                onClick={handleRemoveImage}
+                style={{
+                  background: '#fa5252',
+                  color: 'white',
+                  border: 'none',
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '12px'
+                }}
+                disabled={isProcessing}
+              >
+                제거
+              </button>
+            </div>
+            <img 
+              src={imagePreview} 
+              alt="Preview" 
+              style={{ 
+                width: '100%', 
+                maxHeight: '300px',
+                objectFit: 'contain',
+                borderRadius: '6px',
+                background: '#f8f9fa'
+              }} 
+            />
+          </div>
+        )}
+
+        {/* 구분선 */}
+        <div style={{ 
+          margin: '20px 0', 
+          textAlign: 'center', 
+          color: '#868e96',
+          position: 'relative'
+        }}>
+          <span style={{ 
+            background: '#f8f9fa', 
+            padding: '0 10px',
+            position: 'relative',
+            zIndex: 1,
+            fontSize: '14px'
+          }}>또는</span>
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            left: 0,
+            right: 0,
+            height: '1px',
+            background: '#dee2e6',
+            zIndex: 0
+          }}></div>
+        </div>
+
+        {/* 직접 URI 입력 옵션 */}
+        <div className="form-group">
+          <label>Token URI 직접 입력</label>
           <input
             type="text"
             value={newTokenURI}
             onChange={(e) => setNewTokenURI(e.target.value)}
             placeholder="ipfs://Qm... 또는 https://..."
-            disabled={isProcessing}
+            disabled={isProcessing || newImageFile !== null}
           />
-          <small>새로운 이미지나 메타데이터 파일의 URI를 입력하세요</small>
+          <small>이미 IPFS에 업로드된 URI를 직접 입력할 수 있습니다</small>
         </div>
+
         <button
           onClick={handleUpdateTokenURI}
           className="action-button"
-          disabled={isProcessing}
+          disabled={isProcessing || (!newTokenURI && !newImageFile)}
         >
-          {isProcessing ? '업데이트 중...' : '🔄 URI 업데이트'}
+          {uploadingImage ? 'IPFS 업로드 중...' : 
+           isProcessing ? '업데이트 중...' : 
+           'URI 업데이트'}
         </button>
       </div>
 
       {/* URI 히스토리 */}
       {uriHistory.length > 0 && (
         <div className="info-box">
-          <h4>📜 URI 변경 히스토리</h4>
+          <h4>URI 변경 히스토리</h4>
           <div className="uri-history">
             {uriHistory.map((uri, index) => (
               <div key={index} className="uri-history-item">
@@ -548,8 +803,20 @@ const NFTManagePage = () => {
     if (nftData) {
       try {
         const parsedNft = JSON.parse(decodeURIComponent(nftData));
-        setNft(parsedNft);
-        console.log('📦 NFT 데이터 로드:', parsedNft);
+        
+        // 로컬에서 최신 메타데이터 다시 조회
+        if (parsedNft.tokenURI) {
+          fetchNFTMetadata(parsedNft.tokenURI).then(freshMetadata => {
+            if (freshMetadata) {
+              parsedNft.metadata = freshMetadata;
+            }
+            setNft(parsedNft);
+            console.log('📦 NFT 데이터 로드 (최신 메타데이터):', parsedNft);
+          });
+        } else {
+          setNft(parsedNft);
+          console.log('📦 NFT 데이터 로드:', parsedNft);
+        }
         
         if (parsedNft.type === 'fractional' && provider) {
           checkFractionalStatus(parsedNft.tokenId).then(fractionalized => {
@@ -570,21 +837,6 @@ const NFTManagePage = () => {
       }
     }
   }, [provider, checkFractionalStatus]);
-
-  const convertIpfsUrl = (url) => {
-    if (!url) return '';
-    if (url.startsWith('https://') || url.startsWith('http://')) return url;
-    if (url.startsWith('ipfs://')) {
-      return url.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/');
-    }
-    if (url.startsWith('ipfs:/')) {
-      return url.replace('ipfs:/', 'https://gateway.pinata.cloud/ipfs/');
-    }
-    if (url.startsWith('Qm') || url.startsWith('bafy')) {
-      return `https://gateway.pinata.cloud/ipfs/${url}`;
-    }
-    return url;
-  };
 
   const handleSuccess = (message, hash) => {
     setError(null);
@@ -1135,7 +1387,7 @@ const NFTManagePage = () => {
       <div className="tabs-container">
         <div className="tabs">
           {isDynamic && (
-            <button className={`tab ${activeTab === 'dynamicManage' ? 'active' : ''}`} onClick={() => setActiveTab('dynamicManage')}>🔄 메타데이터 관리</button>
+            <button className={`tab ${activeTab === 'dynamicManage' ? 'active' : ''}`} onClick={() => setActiveTab('dynamicManage')}>메타데이터 관리</button>
           )}
           {isFractional && !isFractionalized && (
             <button className={`tab ${activeTab === 'fractionalize' ? 'active' : ''}`} onClick={() => setActiveTab('fractionalize')}>분할(Split)</button>

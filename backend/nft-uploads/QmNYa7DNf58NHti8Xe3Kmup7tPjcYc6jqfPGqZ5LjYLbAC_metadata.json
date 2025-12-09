@@ -1,0 +1,11 @@
+{
+  "name": "졸업장",
+  "description": "졸업장 증명서",
+  "image": "https://ipfs.io/ipfs/QmV24s3qpExeUZLAZZpPDq7hTFfhXMnru4TaLvHrz4p3YG",
+  "attributes": [
+    {
+      "trait_type": "Created",
+      "value": "2025-12-08T03:29:35.441Z"
+    }
+  ]
+}

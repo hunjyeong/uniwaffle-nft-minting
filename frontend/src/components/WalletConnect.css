@@ -8,13 +8,22 @@
   max-width: 1200px;
   width: 100%;
   margin: 0 auto;
+  position: relative;
+  overflow: visible;
 }
 
 .wallet-connect .connect-section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0;
   position: relative;
+}
+
+.wallet-connect .chain-selector-wrapper {
+  position: relative;
+  max-width: 500px;
+  width: 100%;
+  margin: 0 auto 12px auto; 
 }
 
 .wallet-connect .chain-selector-button,
@@ -32,16 +41,13 @@
   cursor: pointer;
   transition: all 0.2s;
   position: relative;
-  max-width: 400px;
   width: 100%;
   box-sizing: border-box;
-  margin: 0 auto;
 }
 
 .wallet-connect .chain-selector-button:hover,
 .wallet-connect .chain-display:hover {
   background: #e9ecef;
-  border-color: #dee2e6;
 }
 
 .wallet-connect .chain-icon-img {
@@ -70,7 +76,7 @@
   top: 100%;
   left: 0;
   right: 0;
-  margin-top: 4px;
+  margin-top: 2px;
   background: white;
   border: 2px solid #e9ecef;
   border-radius: 8px;
@@ -79,9 +85,7 @@
   max-height: 500px;
   overflow-y: auto;
   width: 100%;
-  max-width: 400px;
   box-sizing: border-box;
-  margin: 0 auto;
 }
 
 .wallet-connect .chain-category {
@@ -162,14 +166,15 @@
   font-weight: 600;
   cursor: pointer;
   transition: transform 0.2s;
-  max-width: 400px;
+  max-width: 500px;
   width: 100%;
   box-sizing: border-box;
-  margin: 0 auto;
+  margin: 12px auto 0 auto;
 }
 
 .wallet-connect .connect-button:hover:not(:disabled) {
   transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(102, 126, 234, 0.4);
 }
 
 .wallet-connect .connect-button:disabled {
@@ -181,6 +186,7 @@
   text-align: center;
   font-size: 13px;
   color: #868e96;
+  margin-top: 12px;
 }
 
 .wallet-connect .wallet-hint p {
@@ -197,6 +203,9 @@
 
 .wallet-connect .chain-info {
   position: relative;
+  max-width: 500px;
+  width: 100%;
+  margin: 0 auto;
 }
 
 .wallet-connect .account-info {
