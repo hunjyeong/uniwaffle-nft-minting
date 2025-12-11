@@ -10,19 +10,37 @@ export const useWeb3 = () => {
   const [error, setError] = useState(null);
   const [walletType, setWalletType] = useState(null);
   const [currentChain, setCurrentChain] = useState(null);
-  const [wcProvider, setWcProvider] = useState(null);
 
-  // 지갑 연결 해제 (먼저 정의)
-  const disconnectWallet = useCallback(async () => {
-    if (wcProvider) {
-      try {
-        await wcProvider.disconnect();
-      } catch (err) {
-        console.error('WalletConnect 연결 해제 실패:', err);
+  // Ethereum 지갑 감지 (Trust Wallet, MetaMask 등)
+  const getEthereumProvider = () => {
+    // 1. window.ethereum이 없으면 null
+    if (!window.ethereum) return null;
+    
+    // 2. 여러 지갑이 설치된 경우 (window.ethereum.providers 배열)
+    if (window.ethereum.providers && Array.isArray(window.ethereum.providers)) {
+      // Phantom이 아닌 첫 번째 EVM 지갑 찾기
+      const evmProvider = window.ethereum.providers.find(
+        provider => !provider.isPhantom
+      );
+      
+      if (evmProvider) {
+        console.log('EVM 지갑 발견 (다중 지갑 환경)');
+        return evmProvider;
       }
-      setWcProvider(null);
     }
+    
+    // 3. 단일 지갑이지만 Phantom인 경우
+    if (window.ethereum.isPhantom) {
+      console.log('Phantom 지갑만 감지됨 - Ethereum 지갑을 설치해주세요');
+      return null;
+    }
+    
+    // 4. 일반적인 경우 (Trust Wallet, MetaMask 등)
+    return window.ethereum;
+  };
 
+  // 지갑 연결 해제
+  const disconnectWallet = useCallback(async () => {
     setAccount(null);
     setProvider(null);
     setChainId(null);
@@ -30,18 +48,9 @@ export const useWeb3 = () => {
     setCurrentChain(null);
     setError(null);
     console.log('지갑 연결 해제');
-  }, [wcProvider]);
+  }, []);
 
-  // Trust Wallet 확인 (WalletConnect 포함)
-  const isTrustWalletAvailable = () => {
-    if (typeof window.ethereum !== 'undefined' && 
-        (window.ethereum.isTrust || window.ethereum.isTrustWallet)) {
-      return 'injected';
-    }
-    return 'walletconnect';
-  };
-
-  // 체인 전환 (WalletConnect 지원)
+  // 체인 전환
   const switchChain = async (chain) => {
     try {
       if (chain.type !== CHAIN_TYPES.EVM) {
@@ -50,43 +59,10 @@ export const useWeb3 = () => {
 
       setError(null);
 
-      // WalletConnect 사용 중인 경우
-      if (walletType === 'walletconnect' && wcProvider) {
+      const ethereum = getEthereumProvider();
+      if (ethereum) {
         try {
-          await wcProvider.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: chain.chainId }]
-          });
-          
-          setCurrentChain(chain);
-          setChainId(chain.chainId);
-          console.log('WalletConnect 체인 전환 성공:', chain.name);
-          return true;
-        } catch (switchError) {
-          if (switchError.code === 4902 && chain.chainId !== '0x1') {
-            await wcProvider.request({
-              method: 'wallet_addEthereumChain',
-              params: [{
-                chainId: chain.chainId,
-                chainName: chain.name,
-                nativeCurrency: chain.nativeCurrency,
-                rpcUrls: [chain.rpcUrl],
-                blockExplorerUrls: chain.explorer ? [chain.explorer] : []
-              }]
-            });
-            
-            setCurrentChain(chain);
-            setChainId(chain.chainId);
-            return true;
-          }
-          throw switchError;
-        }
-      }
-
-      // Trust Wallet 내장 브라우저
-      if (window.ethereum) {
-        try {
-          await window.ethereum.request({
+          await ethereum.request({
             method: 'wallet_switchEthereumChain',
             params: [{ chainId: chain.chainId }]
           });
@@ -103,7 +79,7 @@ export const useWeb3 = () => {
               throw new Error('Mainnet을 찾을 수 없습니다.');
             }
             
-            await window.ethereum.request({
+            await ethereum.request({
               method: 'wallet_addEthereumChain',
               params: [{
                 chainId: chain.chainId,
@@ -133,8 +109,8 @@ export const useWeb3 = () => {
     }
   };
 
-  // WalletConnect 연결 (Trust Wallet QR Code)
-  const connectWalletConnect = async (chain = currentChain || SUPPORTED_CHAINS.ETHEREUM_SEPOLIA) => {
+  // Trust Wallet 연결
+  const connectWallet = async (chain = currentChain || SUPPORTED_CHAINS.ETHEREUM_SEPOLIA) => {
     setIsConnecting(true);
     setError(null);
 
@@ -143,103 +119,22 @@ export const useWeb3 = () => {
         throw new Error('현재 EVM 체인만 지원합니다.');
       }
 
-      const { EthereumProvider } = await import('@walletconnect/ethereum-provider');
+      const ethereum = getEthereumProvider();
       
-      const savedSession = localStorage.getItem('walletconnect');
-      
-      const walletConnectProvider = await EthereumProvider.init({
-        projectId: process.env.REACT_APP_WALLETCONNECT_PROJECT_ID || 'YOUR_PROJECT_ID',
-        chains: [parseInt(chain.chainId, 16)],
-        showQrModal: true,
-        qrModalOptions: {
-          themeMode: 'light',
-          themeVariables: {
-            '--wcm-z-index': '9999'
-          }
-        }
-      });
-
-      if (savedSession && walletConnectProvider.session) {
-        console.log('기존 WalletConnect 세션 복원 시도');
-      } else {
-        await walletConnectProvider.connect();
+      if (!ethereum) {
+        setError('Trust Wallet 또는 MetaMask를 설치해주세요.');
+        throw new Error('Ethereum 지갑을 찾을 수 없습니다.');
       }
 
-      const provider = new ethers.BrowserProvider(walletConnectProvider);
-      const signer = await provider.getSigner();
-      const address = await signer.getAddress();
-      const network = await provider.getNetwork();
-
-      setAccount(address);
-      setProvider(provider);
-      setChainId('0x' + network.chainId.toString(16));
-      setCurrentChain(chain);
-      setWalletType('walletconnect');
-      setWcProvider(walletConnectProvider);
-
-      // WalletConnect 이벤트 리스너
-      walletConnectProvider.on('accountsChanged', (accounts) => {
-        if (accounts.length > 0) {
-          setAccount(accounts[0]);
-        } else {
-          disconnectWallet();
-        }
-      });
-
-      walletConnectProvider.on('chainChanged', (chainId) => {
-        const newChainId = '0x' + parseInt(chainId).toString(16);
-        setChainId(newChainId);
-        
-        const chain = Object.values(SUPPORTED_CHAINS).find(
-          c => c.chainId === newChainId
-        );
-        if (chain) {
-          setCurrentChain(chain);
-        }
-      });
-
-      walletConnectProvider.on('disconnect', () => {
-        console.log('WalletConnect 연결 해제됨');
-        disconnectWallet();
-      });
-
-      console.log('WalletConnect 연결 성공:', address);
-    } catch (err) {
-      console.error('WalletConnect 연결 실패:', err);
-      if (err.message.includes('User rejected') || err.message.includes('User closed modal')) {
-        setError('사용자가 연결을 거부했습니다.');
-      } else {
-        setError('Trust Wallet 연결에 실패했습니다.');
-      }
-      throw err;
-    } finally {
-      setIsConnecting(false);
-    }
-  };
-
-  // Trust Wallet 내장 브라우저 연결
-  const connectTrustWalletInjected = async (chain = currentChain || SUPPORTED_CHAINS.ETHEREUM_SEPOLIA) => {
-    setIsConnecting(true);
-    setError(null);
-
-    try {
-      if (chain.type !== CHAIN_TYPES.EVM) {
-        throw new Error('현재 EVM 체인만 지원합니다.');
-      }
-
-      if (!window.ethereum) {
-        throw new Error('Trust Wallet을 찾을 수 없습니다.');
-      }
-
-      const accounts = await window.ethereum.request({
+      const accounts = await ethereum.request({
         method: 'eth_requestAccounts'
       });
 
-      const provider = new ethers.BrowserProvider(window.ethereum);
+      const provider = new ethers.BrowserProvider(ethereum);
       const network = await provider.getNetwork();
       const networkChainId = '0x' + network.chainId.toString(16);
       
-      console.log('Trust Wallet 연결됨:', {
+      console.log('지갑 연결됨:', {
         account: accounts[0],
         currentNetwork: networkChainId,
         requestedNetwork: chain.chainId
@@ -286,29 +181,10 @@ export const useWeb3 = () => {
     }
   };
 
-  // 통합 연결 함수
-  const connectWallet = async (chain = currentChain || SUPPORTED_CHAINS.ETHEREUM_SEPOLIA) => {
-    if (chain.type !== CHAIN_TYPES.EVM) {
-      setError('현재 EVM 체인만 지원합니다.');
-      return;
-    }
-
-    const walletAvailable = isTrustWalletAvailable();
-    
-    try {
-      if (walletAvailable === 'injected') {
-        await connectTrustWalletInjected(chain);
-      } else {
-        await connectWalletConnect(chain);
-      }
-    } catch (err) {
-      console.error('연결 실패:', err);
-    }
-  };
-
   // 계정 및 체인 변경 감지
   useEffect(() => {
-    if (!window.ethereum || walletType === 'walletconnect') return;
+    const ethereum = getEthereumProvider();
+    if (!ethereum) return;
 
     const handleAccountsChanged = (accounts) => {
       if (accounts.length === 0) {
@@ -331,30 +207,30 @@ export const useWeb3 = () => {
       }
     };
 
-    window.ethereum.on('accountsChanged', handleAccountsChanged);
-    window.ethereum.on('chainChanged', handleChainChanged);
+    ethereum.on('accountsChanged', handleAccountsChanged);
+    ethereum.on('chainChanged', handleChainChanged);
 
     return () => {
-      if (window.ethereum.removeListener) {
-        window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-        window.ethereum.removeListener('chainChanged', handleChainChanged);
+      if (ethereum.removeListener) {
+        ethereum.removeListener('accountsChanged', handleAccountsChanged);
+        ethereum.removeListener('chainChanged', handleChainChanged);
       }
     };
-  }, [account, walletType, disconnectWallet]);
+  }, [account, disconnectWallet]);
 
   // 페이지 로드 시 연결 상태 확인
   useEffect(() => {
     const checkConnection = async () => {
       try {
-        // 1. Trust Wallet 내장 브라우저 확인
-        if (window.ethereum && 
-            (window.ethereum.isTrust || window.ethereum.isTrustWallet)) {
-          const accounts = await window.ethereum.request({
+        const ethereum = getEthereumProvider();
+        
+        if (ethereum) {
+          const accounts = await ethereum.request({
             method: 'eth_accounts'
           });
 
           if (accounts.length > 0) {
-            const provider = new ethers.BrowserProvider(window.ethereum);
+            const provider = new ethers.BrowserProvider(ethereum);
             const network = await provider.getNetwork();
             const networkChainId = '0x' + network.chainId.toString(16);
             
@@ -368,75 +244,8 @@ export const useWeb3 = () => {
             );
             if (chain) {
               setCurrentChain(chain);
-              console.log('Trust Wallet 연결 복원:', chain.name);
+              console.log('지갑 연결 복원:', chain.name);
             }
-            return;
-          }
-        }
-
-        // 2. WalletConnect 세션 복원 시도
-        const savedSession = localStorage.getItem('walletconnect');
-        if (savedSession) {
-          try {
-            const { EthereumProvider } = await import('@walletconnect/ethereum-provider');
-            
-            const walletConnectProvider = await EthereumProvider.init({
-              projectId: process.env.REACT_APP_WALLETCONNECT_PROJECT_ID || 'YOUR_PROJECT_ID',
-              chains: [11155111],
-              showQrModal: false
-            });
-
-            if (walletConnectProvider.session) {
-              const provider = new ethers.BrowserProvider(walletConnectProvider);
-              const signer = await provider.getSigner();
-              const address = await signer.getAddress();
-              const network = await provider.getNetwork();
-              const networkChainId = '0x' + network.chainId.toString(16);
-
-              setAccount(address);
-              setProvider(provider);
-              setChainId(networkChainId);
-              setWalletType('walletconnect');
-              setWcProvider(walletConnectProvider);
-
-              const chain = Object.values(SUPPORTED_CHAINS).find(
-                c => c.chainId === networkChainId
-              );
-              if (chain) {
-                setCurrentChain(chain);
-                console.log('WalletConnect 세션 복원:', chain.name);
-              }
-
-              walletConnectProvider.on('accountsChanged', (accounts) => {
-                if (accounts.length > 0) {
-                  setAccount(accounts[0]);
-                } else {
-                  disconnectWallet();
-                }
-              });
-
-              walletConnectProvider.on('chainChanged', (chainId) => {
-                const newChainId = '0x' + parseInt(chainId).toString(16);
-                setChainId(newChainId);
-                
-                const chain = Object.values(SUPPORTED_CHAINS).find(
-                  c => c.chainId === newChainId
-                );
-                if (chain) {
-                  setCurrentChain(chain);
-                }
-              });
-
-              walletConnectProvider.on('disconnect', () => {
-                disconnectWallet();
-              });
-            } else {
-              localStorage.removeItem('walletconnect');
-              console.log('WalletConnect 세션 만료됨');
-            }
-          } catch (err) {
-            console.error('WalletConnect 세션 복원 실패:', err);
-            localStorage.removeItem('walletconnect');
           }
         }
       } catch (err) {
@@ -445,7 +254,7 @@ export const useWeb3 = () => {
     };
 
     checkConnection();
-  }, [disconnectWallet]);
+  }, []);
 
   return {
     account,
@@ -459,7 +268,6 @@ export const useWeb3 = () => {
     isCorrectNetwork: chainId === currentChain?.chainId,
     connectWallet,
     disconnectWallet,
-    switchChain,
-    isTrustWalletAvailable
+    switchChain
   };
 };

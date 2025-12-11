@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useWeb3 } from '../hooks/useWeb3.js';
+import { useSolanaWallet } from '../hooks/useSolanaWallet.js';
 import { uploadNFT } from '../utils/ipfs.js';
 import { mintEvmNFT } from '../utils/EVMcontract.js';
 import { CHAIN_TYPES } from '../config/chains.js';
@@ -7,6 +8,8 @@ import './MintForm.css';
 
 const MintForm = () => {
   const { account, provider, isConnected, isCorrectNetwork, currentChain } = useWeb3();
+
+  const { connected: solanaConnected, disconnectWallet: disconnectSolana } = useSolanaWallet();
   
   const [nftType, setNftType] = useState('native');
   const [name, setName] = useState('');
@@ -27,6 +30,14 @@ const MintForm = () => {
 
   const isButtonDisabled = isMinting || !isConnected || !isCorrectNetwork;
 
+  // 이더리움 페이지 진입 시 Solana 지갑 자동 연결 해제
+  useEffect(() => {
+    if (solanaConnected) {
+      console.log('🔄 이더리움 페이지 진입 - Phantom 지갑 자동 연결 해제');
+      disconnectSolana();
+    }
+  }, []); // 페이지 진입 시 1회만 실행
+  
   // 체인 변경 시 상태 초기화
   useEffect(() => {
     console.log('🔄 체인 변경 감지:', currentChain?.name);
