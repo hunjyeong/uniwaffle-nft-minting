@@ -32,6 +32,7 @@ contract DynamicNFT is ERC721URIStorage, ERC721Enumerable, Ownable {
     
     event MetadataUpdated(uint256 indexed tokenId, string newMetadata, address updatedBy);
     event URIUpdated(uint256 indexed tokenId, string newURI);
+    event NFTBurned(address indexed from, uint256 indexed tokenId);
     
     constructor(
         string memory name,
@@ -84,6 +85,26 @@ contract DynamicNFT is ERC721URIStorage, ERC721Enumerable, Ownable {
         }
         
         return tokenId;
+    }
+    
+    // ========================================
+    // 🔥 소각 함수 (BURN)
+    // ========================================
+    
+    /**
+     * @dev NFT 소각 - 소유자 또는 승인된 주소만 가능
+     * @param tokenId 소각할ㄴ 토큰 ID
+     */
+    function burn(uint256 tokenId) external {
+        require(_isAuthorized(ownerOf(tokenId), msg.sender, tokenId), "Not owner or approved");
+        
+        // 메타데이터 및 히스토리 삭제
+        delete tokenMetadata[tokenId];
+        delete metadataHistory[tokenId];
+        delete tokenURIHistory[tokenId];
+        
+        _burn(tokenId);
+        emit NFTBurned(msg.sender, tokenId);
     }
     
     // ========================================

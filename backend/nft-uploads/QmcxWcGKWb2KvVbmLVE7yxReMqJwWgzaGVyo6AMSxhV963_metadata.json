@@ -1,0 +1,13 @@
+{
+  "name": "증명서",
+  "description": "봉사 증명서",
+  "image": "https://ipfs.io/ipfs/Qmb2CzSPcq8ZrSjoVMPKP3hxQbFbfhAHfUtTDs3maQQjWt",
+  "총 시간": "10",
+  "날짜": "20251210",
+  "attributes": [
+    {
+      "trait_type": "Created",
+      "value": "2025-12-10T00:23:19.969Z"
+    }
+  ]
+}

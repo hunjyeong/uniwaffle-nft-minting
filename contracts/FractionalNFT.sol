@@ -62,6 +62,7 @@ contract FractionalNFT is ERC721URIStorage, Ownable, ReentrancyGuard {
     event BuyoutProposed(uint256 indexed tokenId, address buyer, uint256 price);
     event VoteCast(uint256 indexed tokenId, address voter, bool support, uint256 weight);
     event BuyoutExecuted(uint256 indexed tokenId, address buyer, uint256 price);
+    event NFTBurned(address indexed from, uint256 indexed tokenId);
     
     constructor(
         string memory name,
@@ -84,6 +85,24 @@ contract FractionalNFT is ERC721URIStorage, Ownable, ReentrancyGuard {
         _safeMint(to, tokenId);
         _setTokenURI(tokenId, uri);
         return tokenId;
+    }
+    
+    // ========================================
+    // 🔥 소각 함수 (BURN)
+    // ========================================
+    
+    /**
+     * @dev NFT 소각 - 분할되지 않은 NFT만 소각 가능
+     * @param tokenId 소각할 토큰 ID
+     */
+    function burn(uint256 tokenId) external {
+        require(ownerOf(tokenId) == msg.sender || getApproved(tokenId) == msg.sender, 
+                "Not owner or approved");
+        require(!fractionalizedNFTs[tokenId].isActive, 
+                "Cannot burn fractionalized NFT. Redeem it first.");
+        
+        _burn(tokenId);
+        emit NFTBurned(msg.sender, tokenId);
     }
     
     // ========================================
